@@ -1,10 +1,10 @@
-# Contributing to Jev Voice
+# Contributing
 
-Thanks for helping make voice control more useful on the Mac.
+Thanks for looking at Jev Voice.
 
-## Run it locally
+## Build locally
 
-Follow the [build and setup instructions](README.md#get-started). Before submitting a change, run:
+Install Xcode Command Line Tools, then run:
 
 ```sh
 bash build.sh
@@ -12,14 +12,14 @@ bash build.sh
 'dist/Jev Voice.app/Contents/MacOS/JevVoice' --activity-test
 ```
 
-The local suites use synthetic data and HTTP fixtures. A passing result does not replace a real-app check when changing action execution. Describe what you tested and distinguish recorded audio, typed commands, and physical-microphone tests.
+The two local checks use synthetic state and HTTP fixtures. The router check makes paid TypeSafe API calls. The speech-file check uses a local recording you provide and requests Speech Recognition access. See [checks and diagnostics](docs/testing.md) before running these checks.
 
-## Report a task that fails
+## Changes
 
-Open an issue with the macOS and app version, the target app, a non-sensitive example command, expected behavior, and what actually happened. Note whether the command was spoken or typed. Include only the relevant, redacted Jev activity excerpt; full traces can contain private screen text and URLs. Do not post API keys or authorization headers.
+Keep UI actions grounded in the current Accessibility tree and verify them against fresh state. Avoid adding app-specific command recipes or silently reporting completion after an attempted action.
 
-## Keep the decision loop general
+Report what you checked, including whether you used fixtures, a recording, a physical microphone, or a live app. Never include API keys, private recordings, or unredacted screen text in an issue or patch.
 
-Discover capabilities from the current interface and let Jev choose. Avoid app-name rules, website aliases, task-specific macros, and hardcoded command recipes. Verify an action against fresh state before reporting success, and keep cancellation, API failures, and unavailable evidence visible.
+## License status
 
-Keep changes focused. Add a regression check for a behavior change where it meaningfully catches the failure, and explain any remaining live-test limits in the pull request.
+This repository's upstream base has no license file. See [credits and licensing](docs/credits-and-license.md) before copying or redistributing code.

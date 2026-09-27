@@ -1,120 +1,137 @@
-# Jev Voice
+# Jev Voice, public edition draft
 
-### Talk to your Mac. Watch it work.
+Speak. It acts.
 
-A small floating bar for voice and text commands. Jev picks the next action from your Mac’s live controls, the app executes it, and the loop continues toward your request.
+A full-access voice interface for macOS, powered by your Claude Code or Codex login.
 
-[![macOS build](https://github.com/ronadin2002/jev-cua/actions/workflows/macos.yml/badge.svg)](https://github.com/ronadin2002/jev-cua/actions/workflows/macos.yml)
-![macOS 14+, Apple silicon](https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20silicon-20252b?logo=apple&logoColor=white)
-[![Jev Latest](https://img.shields.io/badge/Jev-latest-83dfc1)](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+![Jev Voice launch artwork, not a screenshot of the app](assets/social-preview.png)
 
-[![Jev Voice demo: opening Chrome, searching, calculating, and taking a photo](assets/demo.gif)](https://github.com/ronadin2002/jev-cua/raw/refs/heads/main/assets/demo.mp4)
+[Architecture](#how-it-works) · [Quick start](#quick-start) · [Full access](#full-access) · [Cost](#what-costs-money)
 
-**[Download the full demo · 42 seconds, with sound (MP4) →](https://github.com/ronadin2002/jev-cua/raw/refs/heads/main/assets/demo.mp4)**
+## Demo
 
-Preview above plays at 2× speed. The downloadable video plays at its original speed.
+The real screen recording is still pending. The image above is launch artwork, not a screenshot. The recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
 
-**[Get started](#get-started)** · **[How it works](#how-it-works)** · **[Contribute](CONTRIBUTING.md)**
+## What makes it different
 
-## One bar, wherever you work
+Siri is useful for its built-in requests and app shortcuts. macOS Dictation enters text where you can type. Jev Voice takes a spoken or typed request into a task loop: a reasoning brain can use its CLI tools, Jev can choose among actions found on the current screen, and the Mac controller checks the result. [Apple's Siri guide](https://support.apple.com/guide/mac-pro/siri-apdf7bb2fad4/mac) and [Dictation guide](https://support.apple.com/en-au/guide/mac-help/mh40584/26/mac/26) describe those built-in roles.
 
-- **Keep talking.** Turn the mic on once. Speak a full request, pause, then give another. Commands queue while work is in progress.
-- **Type when you prefer.** Click the bar, enter a command, and press Return. Text commands work with the mic off.
-- **Complete multiple steps.** Each action is followed by a fresh observation and another Jev decision. Options come from the current interface and installed apps.
-- **See what is happening.** The bar shows your command and current action. Settings → Jev activity shows the model’s inputs, choices, errors, and observed results.
+There is no honest head-to-head benchmark against Siri, dictation apps, or other computer-use agents yet. The figures below come from the owner’s runs of this build, so treat them as examples rather than a broad benchmark:
 
-The bar stays available across apps and full-screen Spaces. There is no confirmation queue; the stop button and “cancel task” interrupt execution.
+- One spoken request closed 17 apps in 12.6 seconds.
+- Claude Opus 5.5 answered in about 2.5 seconds.
+- Across 38 recordings, local Whisper had 11.5% word error, compared with 16.4% for Apple Speech.
 
-## In the demo
+The Claude Code and Codex backends are in this source copy. Their end-to-end checks are still open, so this draft makes no reliability claim for either backend yet.
 
-| Spoken request | Visible action |
-| --- | --- |
-| “Open Chrome” | Launches the browser. |
-| “Search for restaurant” | Enters a query and opens Google results. |
-| “Open Calculator,” then “What’s 90 + 7?” | Uses Calculator’s controls to produce **97**. |
-| “Open Photo Booth,” then “Take a photo of me” | Opens the camera app and triggers the shutter countdown. |
+## Quick start
 
-This is a recording of the app in use. It demonstrates these interactions; it is not a performance benchmark or a guarantee for every app.
+Jev Voice is an Apple silicon app for macOS 14 or later. Building from source needs Apple's Xcode Command Line Tools. Choose either Claude Code or Codex as the reasoning brain. Jev Voice also needs a TypeSafe API key for its action picker.
 
-## Get started
+### 1. Install and sign in to a CLI brain
 
-You need **an Apple silicon Mac with macOS 14+**, Xcode command-line tools, and **your own funded OpenRouter or TypeSafe API key**. An OpenRouter key (`sk-or-…`) uses `~typesafe/jev-latest` through OpenRouter; a TypeSafe key (`apikey_…`) calls `jev-latest` directly at `api.typesafe.ai`. No generative planner is involved.
+Choose at least one:
 
-### 1. Build and open
+**Claude Code**
 
 ```sh
-# Install the Apple command-line tools if needed:
-xcode-select --install
+curl -fsSL https://claude.ai/install.sh | bash
+claude
+```
 
-# Clone and build:
-git clone https://github.com/ronadin2002/jev-cua.git
-cd jev-cua
+Follow the browser sign-in. Claude Code requires a supported Claude account, such as Pro, Max, Team, or Enterprise. The free Claude plan does not include Claude Code access. [Claude Code setup](https://code.claude.com/docs/en/getting-started#authenticate)
+
+**Codex CLI**
+
+```sh
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+codex
+```
+
+Choose **Sign in with ChatGPT** when prompted. Check OpenAI’s [Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli) for current plan availability and limits.
+
+### 2. Get a TypeSafe API key
+
+Create a key from the [TypeSafe dashboard](https://console.typesafe.ai). The app stores it in macOS Keychain when you enter it in **Settings → Jev action selector**. It does not read keys from `.env` files or shell variables. TypeSafe’s current Jev price is **$0.042 per million input tokens; output tokens are free**. [TypeSafe quick start](https://docs.typesafe.ai/introduction/quickstart) · [model pricing](https://docs.typesafe.ai/models)
+
+### 3. Build and open the app
+
+After the public repository is created, clone it and build:
+
+```sh
+git clone https://github.com/OWNER/REPOSITORY.git
+cd REPOSITORY
+xcode-select --install
 bash build.sh
 open 'dist/Jev Voice.app'
 ```
 
-The app is built into `dist/`. The source currently builds with Swift 6.2.3 in Swift 5 language mode. No package manager or third-party Swift dependencies are required.
+Replace `OWNER/REPOSITORY` with the public repository path. The build uses Apple frameworks and Swift, with no package manager or third-party Swift dependencies. It creates an unsigned app by default.
 
-### 2. Connect and grant permissions
+In **Settings**, choose Claude Code or Codex, add the TypeSafe key, and set any CLI path that Jev Voice did not find. Settings stores paths on this Mac. The app starts with Apple Speech. You can leave Whisper off.
 
-In **Settings → General**, enter your OpenRouter or TypeSafe key. The provider is chosen from the key prefix. It is saved in **macOS Keychain**.
+### 4. Optional local Whisper
 
-Enable **Accessibility** to let the app operate your Mac. Enable **Microphone** and **Speech Recognition** for voice input. These permissions are managed in **System Settings → Privacy & Security**. After setup, the bar is available for commands and normal launches start listening automatically.
+Install [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and download a compatible GGML model. In **Settings → CLI and local speech paths**, enter the path to `whisper-server` and the model file, then turn on **Use local Whisper for final transcription**. Whisper runs on this Mac; Apple Speech remains the fallback.
 
-The build uses an available Developer ID Application identity, with an ad-hoc fallback. Keep the app path and signing identity stable between builds so macOS can retain permissions. Set `JEV_SIGNING_IDENTITY` to choose an identity (`-` means ad-hoc); `JEV_OUTPUT_DIR` changes the build destination.
+### 5. Grant macOS permissions
 
-### 3. Speak or type
-
-Start with “Open Calculator and calculate 6 plus 7,” or focus an editable field and say `Type "hello from Jev"`. These are example requests, not built-in task recipes.
-
-| Control | What it does |
-| --- | --- |
-| Microphone button / **Option–Space** | Toggle continuous listening. |
-| **Return** in the bar | Send a typed command. |
-| “End command” | Finish an utterance explicitly. |
-| “Cancel task” / stop button | Stop the current task and clear queued commands. |
-| “Stop listening” | Turn off the mic while an active task can continue. |
-| Menu-bar icon → **Settings & diagnostics** | Connection, permissions, and Jev activity. |
-
-Recognition currently uses English. For literal typing, quote the text you want inserted.
+Use the permission buttons in **Settings → macOS permissions** for Microphone and Speech Recognition, Accessibility, and Screen Recording. macOS can also ask for Automation access the first time Jev Voice controls an app. These system prompts still apply.
 
 ## How it works
 
-```text
-Your voice or text command
-           ↓
-Observe the current Mac interface
-           ↓
-Jev selects an available action
-           ↓
-Execute → observe again → repeat
-           ↓
-Check the result against the request
-```
+![Architecture diagram showing on-device speech, a Claude Code or Codex CLI brain, TypeSafe Jev action selection, and the macOS controller](assets/architecture.svg)
 
-Jev is the option picker. Swift discovers controls and executes the selected action through macOS Accessibility, keyboard, and pointer APIs. The original request stays in context throughout the loop.
+Voice is transcribed on the Mac. The selected CLI brain receives the request, screen text, and screenshots when a task needs one. It can also use its own tools for files, shell commands, and web work. Jev receives the request, screen text, action choices, and history as text, then selects one available UI action. The Swift controller performs that action and observes the result before the loop continues.
 
-Large action lists are grouped so every discovered action stays reachable without asking about every group. Typing selects literal text from the request or observed screen text. There are no hardcoded website shortcuts or per-app task scripts.
+TypeSafe receives text, not audio or screenshots. Its API key is separate from the Claude Code or Codex login. [Read the architecture notes](docs/architecture.md).
 
-[Read the decision-loop architecture →](docs/architecture.md)
+## Full access
 
-## Current limits and privacy
+The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without a separate approval for each step in Jev Voice. A request can reach any file or app available to the signed-in macOS account.
 
-This is an experimental Accessibility-based controller. Apps with missing or stale Accessibility information can fail. Jev does not understand screenshots or generate original prose, and completion checks can be wrong. Unquoted typing requests can be less reliable than explicit quoted text.
+Stop a running task with the **Stop** button or say **“cancel task.”** macOS privacy permissions still apply. Jev Voice cannot bypass the operating system’s Microphone, Speech Recognition, Accessibility, Screen Recording, or Automation grants.
 
-Speech is transcribed on-device. **Commands, relevant screen text, and action options go to OpenRouter or TypeSafe** (depending on your key) for Jev decisions. API keys stay in Keychain and process memory. Secure text fields are excluded.
+This is a powerful setup. The CLI brain may read local files or other app data while carrying out a request. Secure Accessibility fields are excluded from Jev's captured screen state, but the CLI can still reach data through its own tools. Diagnostic logs are off by default. If enabled, they can include commands and screen text.
 
-Local diagnostics can contain private screen text and URLs. Credentials and authorization headers are excluded from those traces. Only the intentionally published demo media lives in this repository; local recordings, keys, diagnostic traces, and app builds are ignored.
+The **Jev activity** panel keeps up to 300 TypeSafe API call records in memory while the app is open. These can include the request, screen text, available actions, and API response. Closing the app clears that history. Jev Voice does not save those records to disk. Opt-in diagnostic logs are separate and are written under macOS Application Support.
 
-## Build checks and contributing
+## What costs money
 
-```sh
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --self-test
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --activity-test
-```
+Jev Voice needs a TypeSafe API key. TypeSafe currently charges $0.042 per million input tokens for Jev, with no output-token charge. The amount for a task depends on how much text the action loop sends. Check the [current TypeSafe model page](https://docs.typesafe.ai/models) before use.
 
-These checks run without API keys or paid calls. GitHub Actions runs the same build and local suites on macOS; its badge reflects those checks, not live model accuracy.
+The reasoning brain uses the account already signed in to Claude Code or Codex. Those accounts have their own plan limits and terms. Optional local Whisper uses your Mac’s compute and does not use a Whisper API key.
 
-[Testing and diagnostics](docs/testing.md) · [Contribution guide](CONTRIBUTING.md) · [Report a reproducible issue](https://github.com/ronadin2002/jev-cua/issues)
+The downloadable workflow artifact is unsigned. Notarization needs an Apple Developer Program membership, currently $99 USD per year, and a Developer ID certificate. That membership is optional for building locally. The owner has not decided whether to pay for it. [Apple Developer Program](https://developer.apple.com/programs/enroll/) · [Notarization overview](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
 
-If this is a project you want to follow, **star the repository**. Reproducible task failures and improvements to UI discovery are especially useful contributions.
+## FAQ
+
+**Does Jev Voice ask before each action?**
+
+No. The CLI brain runs with its per-action approval and sandbox checks bypassed. macOS’s privacy grants still apply.
+
+**How do I stop it?**
+
+Click **Stop** or say **“cancel task.”**
+
+**Does speech go to TypeSafe?**
+
+Speech is transcribed locally. TypeSafe receives text state for action selection, including the request, screen text, available actions, and history. It does not receive the audio or screenshots.
+
+**Do I need Whisper?**
+
+No. Apple Speech is the default. Whisper is optional and runs locally.
+
+**Does it work with my Claude or ChatGPT subscription?**
+
+The app launches Claude Code or Codex CLI and uses the account already signed in there. The end-to-end checks for both backends remain open in this draft. Plan eligibility and limits can change, so check the provider’s current CLI documentation.
+
+**Can I redistribute this source?**
+
+Not yet. The upstream base repository has no license file, and this copy does not add one. Written permission and license terms are still needed before anyone publishes or redistributes this edition. See [credits and licensing](docs/credits-and-license.md).
+
+## Credit and release status
+
+This edition is based on [Jev Voice by TypeSafe](https://github.com/ronadin2002/jev-cua). The original project and its authors remain credited as the base.
+
+The GitHub Actions workflow builds an unsigned Apple silicon `.zip` on a `v*` tag and uploads it to the workflow run. It does not create a GitHub Release. The repository, public name, license, and notarization decision are still pending.

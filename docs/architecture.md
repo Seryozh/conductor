@@ -1,24 +1,31 @@
 # How Jev Voice works
 
-[← Back to the README](../README.md)
+Jev Voice separates reasoning, action selection, and macOS input.
 
-## Observe, choose, act, verify
+## Request and reasoning
 
+Apple Speech transcribes voice on the Mac. An optional local Whisper server can make a final transcription pass on recorded audio. Text typed into the command bar follows the same task path.
 
-1. Apple on-device speech recognition accumulates the full spoken request.
-2. The app preserves that request verbatim. It does not split it into scripted tasks.
-3. It discovers installed applications and reads the current app's Accessibility tree: controls, menu items, windows, fields, values, and exposed actions.
-4. It supplies these actions plus generic keyboard, scrolling, dragging, typing, waiting, and completion choices to Jev.
-5. Jev picks one action. Parameter choices (text, complete key combinations, drag targets) also go to Jev.
-6. The app executes that primitive and observes its result. The next Jev choice includes completion alongside actions from the fresh catalogue, with the unchanged original request and history.
-7. Jev selects completion. A separate Jev check compares the current screen against the entire request and its literal values before the app reports success.
+The selected Claude Code or Codex CLI receives the request, current app context, screen text, open windows, prior action results, and a screenshot when the brain asks for one. The CLI runs with its built-in approval and sandbox checks bypassed. It can use its own shell and file tools while it reasons.
 
-There are no website aliases, app-specific task recipes, navigation macros, command-to-action regular expressions, or automatic completion after typing/launching. The capability catalogue does not take the request as an argument. The small fixed vocabulary is the execution machinery itself: physical keys, pointer events, Accessibility APIs, and voice session controls such as “cancel task.”
+## Choosing visible UI actions
 
-## Options and typing
+When a request needs a visible action, the Swift controller reads the current Accessibility tree and builds an action catalogue from controls, menus, installed apps, physical keys, and pointer operations. It sends the text request, screen text, catalogue, and action history to TypeSafe's Jev API. Jev returns one choice. The API receives text, not the original audio or a screenshot.
 
-Every discovered option is retained. Jev's 255-choice limit is handled by groups: compact action labels select a group; full descriptions select the action. Generic operations remain directly selectable. Large catalogues route through operation categories and alphabetical target groups. Only the selected branch is evaluated, avoiding exhaustive parallel nominations. Every discovered leaf remains reachable. Category and group selection execute nothing; UI actions remain sequential. Accessibility scans have a time/node budget and explicitly report incomplete scans; Jev can request a deeper scan.
+Large catalogues are grouped so each discovered action can be reached within the provider's choice limit. Group selection does not itself operate the Mac.
 
-Typing is also selection. Insertion and whole-field replacement are separate choices. Replacement selects all text, verifies that selection, pastes the chosen literal, and verifies the resulting field value; it never submits automatically. Jev selects a source (your request or observed text), the first token, then the complete substring to insert. Code preserves its spelling, punctuation and internal whitespace. Typing does not switch apps, focus another field, submit, navigate, or silently add a domain. “Open YouTube” can therefore lead to entering “YouTube” in a browser and following a search result. A website mapping does not supply “youtube.com.”
+## Acting and checking
 
-Jev cannot generate new prose or understand screenshots. Original writing, custom-drawn/inaccessible controls, arbitrary pixel-level editing and unrestricted human-equivalent operation are **not** supported. Some UI trees provide incomplete or stale information. This app is a general Accessibility-based action picker, not a guarantee that every task will succeed. Secure fields are excluded. Pointer targets are checked; uncertain text insertion stops to prevent duplication. Model completion checks reduce false success but are not infallible.
+The controller carries out the chosen action through macOS Accessibility APIs, Apple Events, keyboard events, or pointer events. It reads the resulting state and continues the loop. The brain receives fresh context on the next turn. A completion choice is accepted only after the current state and history are checked against the original request.
+
+The brain can also act directly through its own CLI tools. The Jev action catalogue covers visible UI operations. It does not restrict what the unrestricted CLI can do through shell commands or files.
+
+## Access and privacy
+
+The CLI is launched with per-action approval and sandbox checks disabled. Jev Voice does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
+
+Voice audio stays on the Mac for transcription. The selected CLI provider receives the request, screen text, and screenshots when needed. TypeSafe receives the request and text context used to choose a UI action. The TypeSafe key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
+
+The Jev activity panel holds up to 300 API call records in memory for the current app session. Records can contain the request, screen text, action choices, and API response. They are not written to disk and disappear when the app closes. Opt-in diagnostic logs are separate files under macOS Application Support.
+
+The full-access behavior is described in the [README](../README.md#full-access). The editable source is based on [Jev Voice by TypeSafe](https://github.com/ronadin2002/jev-cua).

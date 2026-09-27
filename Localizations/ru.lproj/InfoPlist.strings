@@ -1,0 +1,3 @@
+"NSAppleEventsUsageDescription" = "Jev Voice использует Apple Events для управления приложениями по вашему запросу.";
+"NSMicrophoneUsageDescription" = "Jev Voice использует микрофон, пока включено голосовое управление.";
+"NSSpeechRecognitionUsageDescription" = "Jev Voice расшифровывает голосовые команды на этом Mac.";

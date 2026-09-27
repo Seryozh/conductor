@@ -1,21 +1,20 @@
 import Foundation
 import AppKit
+import AVFoundation
 
 enum SelfTests {
     static func run() {
-        precondition(JevClient.model == "~typesafe/jev-latest")
-        precondition(JevProvider.detect(key: "sk-or-v1-abc") == .openRouter && JevProvider.detect(key: " apikey_abc\n") == .typeSafe && JevProvider.detect(key: "sk-ant-abc") == nil)
+        let originalSpeechLocale = UserDefaults.standard.string(forKey: "speechLocale")
+        UserDefaults.standard.set("ru-RU", forKey: "speechLocale")
+        defer {
+            if let originalSpeechLocale { UserDefaults.standard.set(originalSpeechLocale, forKey: "speechLocale") }
+            else { UserDefaults.standard.removeObject(forKey: "speechLocale") }
+        }
+        InputFieldTests.run()
+        precondition(JevClient.model == "jev-latest")
+        precondition(JevProvider.detect(key: "typesafe-example-key-that-is-long-enough") == .typeSafe && JevProvider.detect(key: "short") == nil)
         precondition(JevProvider.typeSafe.model == "jev-latest" && JevProvider.typeSafe.endpoint.absoluteString == "https://api.typesafe.ai/v1/systemone")
-        print("PASS: OpenRouter and TypeSafe keys route to their own endpoint and model id.")
-        let creditFailure = Data(#"{"error":{"metadata":{"limit_source":"openrouter_credits"}}}"#.utf8)
-        let keyFailure = Data(#"{"error":{"metadata":{"limit_source":"openrouter_key_limit"}}}"#.utf8)
-        let temporaryFailure = Data(#"{"error":{"metadata":{"limit_source":"openrouter_in_flight_budget"}}}"#.utf8)
-        precondition(OpenRouterBilling.message(for: creditFailure).contains("Add credits"))
-        precondition(OpenRouterBilling.message(for: keyFailure).contains("spending limit"))
-        precondition(!OpenRouterBilling.message(for: keyFailure).contains("Add credits"))
-        precondition(OpenRouterBilling.message(for: temporaryFailure).contains("Wait a moment"))
-        precondition(!OpenRouterBilling.message(for: temporaryFailure).contains("Add credits"))
-        print("PASS: account credits, key limit and temporary budget failures have distinct recovery instructions.")
+        print("PASS: TypeSafe key validation, endpoint, and model selection.")
         let options = (0..<900).map { ChoiceOption(id: "option_\($0)", description: "Control \($0)") }
         let pages = ChoicePages.groups(options)
         precondition(pages.allSatisfy { $0.count <= 255 })
@@ -39,6 +38,52 @@ enum SelfTests {
         precondition(Set(catalogue.map(\.id)).count == catalogue.count)
         precondition(VoiceControl.parse("cancel task") == .cancelTask)
         precondition(VoiceControl.parse("write cancel task") == nil)
+        // Brain choice by voice and the fake-done check, including optional Russian resources.
+        let switchVerb = VoiceLocalization.words("commands.switchVerbs").first!
+        let sonnetName = VoiceLocalization.words("model.sonnet").first!
+        let sonnetCommand = "\(switchVerb) \(sonnetName)"
+        precondition(VoiceControl.parse(sonnetCommand) == .switchModel("sonnet"))
+        let aliases = VoiceLocalization.aliases("apps.aliases")
+        let chromeAlias = aliases.first(where: { $0.value == "google chrome" })!.key
+        let claudeAlias = aliases.first(where: { $0.value == "claude" })!.key
+        precondition(OpenApps.matching(chromeAlias, in: [("Google Chrome", "com.google.Chrome")]) == [0])
+        let localizedCancel = VoiceLocalization.words("commands.controls").first(where: { $0.hasSuffix("=cancel") })!.components(separatedBy: "=")[0]
+        precondition(VoiceControl.parse(localizedCancel) == .cancelTask)
+        let localizedEnd = VoiceLocalization.words("speech.endMarkers").first!
+        var localizedBuffer = UtteranceBuffer()
+        localizedBuffer.update("Open Safari \(localizedEnd)", at: 1)
+        precondition(localizedBuffer.explicitEnd && localizedBuffer.command == "Open Safari")
+        precondition(BrainChoice.find("luna")?.effort == "xhigh" && BrainChoice.find("astra")?.codex == true)
+        precondition(CodexBrain.tomlString("a\"b\\c\nd café") == "\"a\\\"b\\\\c\\nd café\"")
+        precondition(VoiceControl.parse("switch to opus") == .switchModel("opus"))
+        precondition(VoiceControl.parse("switch to Muse") == nil)   // not offered
+        precondition(VoiceControl.parse("tell the agent to switch to opus") == nil)
+        precondition(VoiceControl.parse("turn on the music") == nil)
+        precondition(ClaudeBrain.claimsDone("Done, fixed.") && ClaudeBrain.claimsDone("Switched to Sonnet.") && ClaudeBrain.claimsDone("Opened the map.") )
+        precondition(!ClaudeBrain.claimsDone("Could not open it.") && !ClaudeBrain.claimsDone("You opened Calculator at 8:44.")
+            && !ClaudeBrain.claimsDone("I am Claude Opus 5.5 by Anthropic.") && !ClaudeBrain.claimsDone("I did not send the message.") && !ClaudeBrain.claimsDone("I can help.") && !ClaudeBrain.claimsDone("The second item is closing apps. It is already done."))
+        var fake = BrainReply(say: "Done, fixed.", open: nil, request: nil)
+        precondition(fake.claimsDoneWithoutActing)
+        fake.settings = ["model": "opus"]
+        precondition(!fake.claimsDoneWithoutActing)
+        precondition(BrainChoice.stored.id == (UserDefaults.standard.string(forKey: "brainModel").flatMap(BrainChoice.find)?.id ?? "opus"))
+        print("PASS: model switching by voice, fake-done detection.")
+        // Closing apps: one name, a list, "all except", and work the brain did with its own tools.
+        let one = try! ClaudeBrain.parse(#"{"say": "Closing Safari.", "quit": "Safari"}"#)
+        let several = try! ClaudeBrain.parse(#"{"say": "Closing apps.", "quit": ["Safari", " Notes ", ""]}"#)
+        let except = try! ClaudeBrain.parse(#"{"say": "Closing other apps.", "quit": null, "quit_except": ["Claude", "Chrome"]}"#)
+        let everything = try! ClaudeBrain.parse(#"{"say": "Closing all apps.", "quit_except": []}"#)
+        precondition(one.quit == ["Safari"] && several.quit == ["Safari", "Notes"] && except.quit.isEmpty && except.quitExcept == ["Claude", "Chrome"])
+        precondition(everything.quitExcept == [] && everything.acts && except.acts && !(try! ClaudeBrain.parse(#"{"say": "Hello."}"#)).acts)
+        var didItself = BrainReply(say: "Done, closed the apps.", open: nil, request: nil)
+        didItself.toolActions = ["Bash: osascript -e 'quit app \"Safari\"'"]
+        precondition(!didItself.claimsDoneWithoutActing)
+        let open: [(name: String, bundle: String)] = [("Google Chrome", "com.google.Chrome"), ("Claude", "com.anthropic.claudefordesktop"), ("Claude Work", "com.example.claude-work"), ("Notes", "com.apple.Notes"), ("Numbers", "com.apple.Numbers")]
+        precondition(OpenApps.matching(chromeAlias, in: open) == [0] && OpenApps.matching("claude", in: open) == [1] && OpenApps.matching("com.apple.notes", in: open) == [3])
+        precondition(OpenApps.matching("Work", in: open) == [2] && OpenApps.matching("N", in: open).isEmpty && OpenApps.matching("Safari", in: open).isEmpty)
+        precondition(OpenApps.keeps("Chrome", name: "Google Chrome", bundle: "com.google.Chrome") && OpenApps.keeps(claudeAlias, name: "Claude", bundle: "")
+            && !OpenApps.keeps("Claude", name: "Notes", bundle: "com.apple.Notes") && !OpenApps.keeps(" ", name: "Notes", bundle: ""))
+        print("PASS: closing one app, a list or all except named ones; tool work is not a fake done.")
         print("PASS: all catalogue options preserved, Unicode literal spans, invalid-span rejection, physical keys/modifiers, no typing without a focused field, latest model alias.")
         speech()
         continuous()
@@ -85,6 +130,41 @@ enum SelfTests {
         buffer.recognize("Open Chrome", start: 0, end: 0, at: 3.5)
         precondition(buffer.command == "Open Notes Open Chrome")
         print("PASS: complete-sentence buffering and recognition rollover.")
+        // Word mode: pauses keep collecting, a localized send phrase ends the command, and a discard phrase clears it.
+        var words = UtteranceBuffer(); words.sendWords = true
+        words.update("Close Chrome", at: 1); words.commitSegment()
+        precondition(!words.explicitEnd && !words.discardRequested)
+        let sendMarker = VoiceLocalization.words("speech.sendMarkers").first!
+        words.update("and Safari, \(sendMarker).", at: 9)
+        precondition(words.explicitEnd && words.command == "Close Chrome and Safari" && words.shouldFinish(at: 9.2))
+        words.reset(); precondition(words.sendWords && words.text.isEmpty)
+        let discardMarker = VoiceLocalization.words("speech.discardMarkers").first!
+        words.update("This is wrong, \(discardMarker)", at: 1); precondition(words.discardRequested && !words.explicitEnd)
+        words.reset(); words.update(discardMarker, at: 1); precondition(words.discardRequested)
+        var pause = UtteranceBuffer(); pause.update("Tell the agent hello and \(sendMarker)", at: 1)
+        precondition(!pause.explicitEnd && !pause.discardRequested && pause.command == "Tell the agent hello and \(sendMarker)")
+        print("PASS: localized word-mode send and discard phrases, pause mode unchanged.")
+        // Whisper: WAV header, junk removal, the send word stripped from its text, 48 kHz audio down to 16 kHz.
+        let pcm = Data(repeating: 0, count: 32_000)
+        let wav = LocalWhisper.wav(pcm)
+        precondition(wav.count == 44 + pcm.count && wav.prefix(4) == Data("RIFF".utf8) && wav.subdata(in: 8..<12) == Data("WAVE".utf8))
+        precondition(LocalWhisper.clean(" Open Chrome.\n More speech ") == "Open Chrome. More speech")
+        var fromWhisper = UtteranceBuffer(); fromWhisper.sendWords = true; fromWhisper.update("Close Chrome and Safari. Send it!", at: 0)
+        precondition(fromWhisper.command == "Close Chrome and Safari.")
+        let recorder = SpeechRecorder()
+        let format = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
+        for chunk in 0..<100 {
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 480)!
+            buffer.frameLength = 480
+            for i in 0..<480 { buffer.floatChannelData![0][i] = Float(sin(Double(chunk * 480 + i) * 0.05)) * 0.3 }
+            recorder.append(buffer)
+            if chunk == 0 { recorder.markSpeaking() }
+        }
+        let second = recorder.take()   // one second of speech at 48 kHz
+        precondition(abs(second.count - 32_000) < 1_000 && recorder.take().isEmpty)
+        for _ in 0..<300 { let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 480)!; buffer.frameLength = 480; recorder.append(buffer) }
+        precondition(recorder.take().count <= 48_000)   // silence before words: only the last 1.5 s
+        print("PASS: Whisper audio at 16 kHz, silence trimmed, junk removed, send word stripped.")
     }
     static func continuous() {
         var session = ContinuousSession()

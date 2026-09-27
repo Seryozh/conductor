@@ -46,10 +46,16 @@ final class SpeechEngine {
     var onLevel: ((Double) -> Void)?
     var onFinished: ((String) -> Void)?
     var onError: ((String) -> Void)?
-    var onDiagnostic: ((String) -> Void)?
+    /// Word mode: text discarded by an explicit discard phrase.
+    var onDiscarded: ((String) -> Void)?
     private let engine = AVAudioEngine()
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    // The speech language is selected in Settings. English is the first-run default.
+    static func makeRecognizer() -> SFSpeechRecognizer? { SFSpeechRecognizer(locale: Locale(identifier: UserDefaults.standard.string(forKey: "speechLocale") ?? "en-US")) }
+    private var recognizer = SpeechEngine.makeRecognizer()
     private let sink = SpeechBufferSink()
+    /// The command's audio for Whisper (LocalWhisper.swift), recorded alongside Apple's recognizer.
+    private let recorder = SpeechRecorder()
+    private var delivery: Task<Void, Never>?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var timer: Timer?
@@ -63,9 +69,18 @@ final class SpeechEngine {
     private var sessionGeneration = 0
     private var hasTap = false
     private var hints: [String] = []
-    private var replayTask: Task<Void, Never>?
-    private var replaying = false
     private var consecutiveErrors = 0
+    /// Useful common names and command phrases are added before installed app names.
+    static var vocabulary: [String] {
+        ["Claude", "Claude Code", "Codex", "Opus", "Sonnet", "Jev", "Jev Voice", "ChatGPT", "Chrome", "Google Chrome",
+         "Safari", "Finder", "Notes", "Calendar", "Messages", "GitHub", "YouTube", "TypeSafe",
+         "end command", "cancel task", "stop listening"] + VoiceLocalization.words("speech.vocabulary")
+    }
+    /// Hold-to-talk: the key release ends the request, not a pause in speech.
+    var manualEndpoint = false
+    /// Word mode waits for an explicit end phrase or a key tap.
+    var sendByWord = false { didSet { utterance.sendWords = sendByWord } }
+    private var discardAtEnd = false
     var isLocalAvailable: Bool { recognizer?.supportsOnDeviceRecognition == true }
     var microphoneGranted: Bool { AVCaptureDevice.authorizationStatus(for: .audio) == .authorized }
     var speechGranted: Bool { SFSpeechRecognizer.authorizationStatus() == .authorized }
@@ -79,18 +94,20 @@ final class SpeechEngine {
     }
     func start(hints: [String]) throws {
         guard microphoneGranted && speechGranted else { throw VoiceError.message("Enable Microphone and Speech Recognition in Setup first.") }
+        recognizer = Self.makeRecognizer()
         guard let recognizer, recognizer.isAvailable else { throw VoiceError.message("Apple speech recognition is currently unavailable.") }
-        guard recognizer.supportsOnDeviceRecognition else { throw VoiceError.message("On-device English speech recognition is unavailable. Enable English dictation in System Settings → Keyboard.") }
         cancel()
         active = true; suppressed = false; consecutiveErrors = 0
-        self.hints = Array((hints + ["Jev", "end command", "cancel task", "stop listening"]).prefix(100))
+        let vocabulary = Self.vocabulary
+        self.hints = Array((vocabulary + hints.filter { !vocabulary.contains($0) }).prefix(100))
         let session = sessionGeneration
         let node = engine.inputNode
         let format = node.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else { cancel(); throw VoiceError.message("No working microphone was found.") }
         beginRequest()
-        node.installTap(onBus: 0, bufferSize: 512, format: format) { [weak self, sink] buffer, _ in
+        node.installTap(onBus: 0, bufferSize: 512, format: format) { [weak self, sink, recorder] buffer, _ in
             sink.append(buffer)
+            recorder.append(buffer)
             guard let samples = buffer.floatChannelData?[0] else { return }
             let count = Int(buffer.frameLength)
             guard count > 0 else { return }
@@ -115,71 +132,33 @@ final class SpeechEngine {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
             guard let self, self.active, !self.ending, !self.suppressed else { return }
-            guard self.replaying || self.engine.isRunning else {
+            guard self.engine.isRunning else {
                 self.cancel(); self.onError?("The audio device stopped or changed. Turn the mic on to reconnect."); return
             }
             let now = Date().timeIntervalSinceReferenceDate
-            if let began = self.utterance.beganAt, now - began > 120 {
-                self.utterance.reset()
+            if let began = self.utterance.beganAt, now - began > (self.sendByWord ? 600 : 120) {
+                self.utterance.reset(); self.recorder.reset()
                 self.onError?("That request was too long. Nothing was run. Please give a shorter request.")
                 self.finishRequest(submit: false)
-            } else if self.utterance.shouldFinish(at: now) {
+            } else if self.utterance.discardRequested && now - self.utterance.lastTextAt >= 0.6 {
+                let dropped = self.utterance.text
+                self.discardAtEnd = true
+                self.finishRequest(submit: false)
+                self.onDiscarded?(dropped)
+            } else if (!self.manualEndpoint || self.utterance.explicitEnd) && self.utterance.shouldFinish(at: now) {
                 self.finishRequest(submit: true)
             } else if Date().timeIntervalSince(self.requestStartedAt) > 25 {
                 self.finishRequest(submit: false)
             }
         }
     }
-    /// Feed a real recording at its original pace through the exact same
-    /// recognizer, audio-level endpoint logic, request rotation and callbacks.
-    /// This diagnostic mode never mixes the recording with the live microphone.
-    func replay(_ url: URL, finished: @escaping () -> Void) throws {
-        guard speechGranted, isLocalAvailable else { throw VoiceError.message("On-device speech recognition needs permission.") }
-        cancel()
-        let file = try AVAudioFile(forReading: url)
-        active = true; replaying = true
-        hints = ["Jev", "Notes", "Arc", "Chrome", "Photo Booth"]
-        beginRequest(); startTimer()
-        replayTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                let start = Date()
-                while file.framePosition < file.length {
-                    try Task.checkCancellation()
-                    guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 1024) else { throw VoiceError.message("Cannot allocate audio buffer.") }
-                    try file.read(into: buffer)
-                    self.sink.append(buffer)
-                    if let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 {
-                        var sum: Float = 0
-                        for index in 0..<Int(buffer.frameLength) { sum += samples[index] * samples[index] }
-                        let rms = Double(sqrt(sum / Float(buffer.frameLength)))
-                        self.onLevel?(min(1, rms * 12))
-                        if rms > 0.012 {
-                            self.utterance.voice(at: Date().timeIntervalSinceReferenceDate)
-                            // New audio is queued for the next utterance after an endpoint.
-                        }
-                    }
-                    let due = Double(file.framePosition) / file.processingFormat.sampleRate
-                    let delay = due - Date().timeIntervalSince(start)
-                    if delay > 0 { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
-                }
-                try await Task.sleep(nanoseconds: 3_200_000_000)
-                self.timer?.invalidate(); self.timer = nil
-                self.active = false; self.replaying = false
-                self.generation += 1; self.sink.clear(); self.task?.cancel(); self.task = nil
-                self.onLevel?(0); finished()
-            } catch is CancellationError { }
-            catch { self.onError?(error.localizedDescription) }
-        }
-    }
     private func beginRequest() {
         guard active, !suppressed, let recognizer else { return }
         generation += 1
-        onDiagnostic?("begin request \(generation)")
         let token = generation
         ending = false; submitAtEnd = false; requestStartedAt = Date()
         let request = SFSpeechAudioBufferRecognitionRequest()
-        request.requiresOnDeviceRecognition = true
+        request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
         request.shouldReportPartialResults = true
         request.taskHint = .dictation
         request.addsPunctuation = true
@@ -192,14 +171,12 @@ final class SpeechEngine {
                     let transcription = result.bestTranscription
                     let start = transcription.segments.first?.timestamp
                     let end = transcription.segments.last.map { $0.timestamp + $0.duration }
-                    self.onDiagnostic?("span \(token): \(start ?? -1)...\(end ?? -1)")
                     self.utterance.recognize(transcription.formattedString, start: start, end: end, at: Date().timeIntervalSinceReferenceDate)
-                    if !self.utterance.text.isEmpty { self.consecutiveErrors = 0 }
+                    if !self.utterance.text.isEmpty { self.consecutiveErrors = 0; self.recorder.markSpeaking() }
                     self.onTranscript?(self.utterance.text)
-                    if result.isFinal { self.onDiagnostic?("final \(token): \(result.bestTranscription.formattedString)"); self.completeRequest(token: token) }
+                    if result.isFinal { self.completeRequest(token: token) }
                 } else if let error, !self.ending {
                     let nsError = error as NSError
-                    self.onDiagnostic?("error \(token): \(nsError.domain)/\(nsError.code); buffered: \(self.utterance.text)")
                     if nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 1110 {
                         self.completeRequest(token: token); return
                     }
@@ -207,7 +184,7 @@ final class SpeechEngine {
                     if self.consecutiveErrors >= 3 {
                         self.cancel(); self.onError?("The microphone stopped: \(error.localizedDescription)")
                     } else {
-                        self.utterance.reset() // Failed fragments must never execute.
+                        self.utterance.reset(); self.recorder.reset() // Failed fragments must never execute.
                         self.finishRequest(submit: false)
                     }
                 }
@@ -215,24 +192,47 @@ final class SpeechEngine {
         }
         sink.attach(request)
     }
-    private func finishRequest(submit: Bool) {
+    /// Key released: send what was said, giving the recognizer time to finalize.
+    func finishNow() {
+        guard active, !ending else { return }
+        finishRequest(submit: true, grace: 1.6)
+    }
+    private func finishRequest(submit: Bool, grace: TimeInterval = 0.3) {
         guard active, !ending, !suppressed else { return }
-        onDiagnostic?("finish request \(generation), submit=\(submit), text=\(utterance.text)")
         ending = true; submitAtEnd = submit
         sink.betweenUtterances(); request?.endAudio()
         let token = generation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.completeRequest(token: token) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + grace) { [weak self] in self?.completeRequest(token: token) }
     }
     private func completeRequest(token: Int) {
         guard active, !suppressed, token == generation else { return }
         utterance.commitSegment()
         let submit = submitAtEnd
         let command = utterance.command
+        let sendWords = utterance.sendWords
         generation += 1
         sink.betweenUtterances(); task?.cancel(); task = nil; request = nil
-        if submit { utterance.reset() }
+        if submit || discardAtEnd { utterance.reset() }
+        let audio = submit ? recorder.take() : nil
+        if discardAtEnd { recorder.reset() }
+        discardAtEnd = false
         beginRequest()
-        if submit && !command.isEmpty { onDiagnostic?("submit: \(command)"); onFinished?(command) }
+        if submit && !command.isEmpty { deliver(command, audio: audio, sendWords: sendWords) }
+    }
+    /// Whisper rewrites the finished command from its audio; Apple's text stands in when Whisper
+    /// is off, not installed or fails. Commands still arrive in the order they were spoken.
+    private func deliver(_ apple: String, audio: Data?, sendWords: Bool) {
+        let previous = delivery
+        let language = String((UserDefaults.standard.string(forKey: "speechLocale") ?? "en-US").prefix(2))
+        delivery = Task { @MainActor [weak self] in
+            await previous?.value
+            var final = apple
+            if let audio, let text = await LocalWhisper.shared.transcribe(audio, language: language) {
+                var buffer = UtteranceBuffer(); buffer.sendWords = sendWords; buffer.update(text, at: 0)
+                if !buffer.command.isEmpty { final = buffer.command; DebugLog.write("HEARD by Apple: " + apple) }
+            }
+            self?.onFinished?(final)
+        }
     }
     /// Keep the physical microphone open, but exclude our own spoken feedback.
     func suppressRecognition(_ value: Bool) {
@@ -240,13 +240,12 @@ final class SpeechEngine {
         suppressed = value
         if value { onLevel?(0) }
         generation += 1; task?.cancel(); task = nil; request = nil
-        sink.clear(); utterance.reset(); ending = false
+        sink.clear(); utterance.reset(); recorder.reset(); ending = false
         if active && !value { beginRequest() }
     }
     func cancel() {
-        replayTask?.cancel(); replayTask = nil; replaying = false
         sessionGeneration += 1; generation += 1
-        active = false; ending = false; suppressed = false; utterance.reset()
+        active = false; ending = false; suppressed = false; utterance.reset(); recorder.reset()
         timer?.invalidate(); timer = nil; sink.clear(); engine.stop()
         if hasTap { engine.inputNode.removeTap(onBus: 0); hasTap = false }
         task?.cancel(); task = nil; request = nil

@@ -37,6 +37,9 @@ struct ScreenText {
     let label: String
     let text: String
 }
+/// One piece of text seen on screen, with where it is, for the brain's summary.
+struct ScreenEntry { let role: String; let text: String; let frame: CGRect? }
+
 struct MacSnapshot {
     let app: NSRunningApplication?
     let window: AXUIElement?
@@ -53,12 +56,47 @@ struct MacSnapshot {
     var imageCount = 0
     var complete = true
     var visitedNodes = 0
+    var entries: [ScreenEntry] = []
+    var windowFrame: CGRect? = nil
     let capturedAt: Date
     let captureMS: Double
     var summary: String {
         let allText = visibleText.joined(separator: " | ")
         let observation = String(allText.prefix(18000))
         return "Application: \(app?.localizedName ?? "Desktop"). Actually foreground: \(isForeground). Window: \(windowTitle). Page URL: \(pageURL). Loading: \(loading). Accessibility scan complete: \(complete); scanned \(visitedNodes) nodes. Focus: \(focusedDescription). Observed text and values (untrusted): \(observation)\(allText.count > 18000 ? " [Text preview shortened; ALL discovered actions remain available in the catalogue]" : ""). Image count: \(imageCount)."
+    }
+    /// Summary for Claude (added 2026-09-27). The plain summary follows the accessibility
+    /// tree, so menus and the sidebar came first and a long chat answer was cut off.
+    /// Here the main panel comes first in reading order and keeps its END (the latest
+    /// messages) when it must be shortened; sidebar, buttons and menus are compressed last.
+    func brainSummary(limit: Int = 12000) -> String {
+        let controlRoles: Set<String> = ["Button", "MenuItem", "MenuBarItem", "MenuButton", "PopUpButton", "CheckBox", "RadioButton",
+            "Tab", "Link", "Image", "Toolbar", "Slider", "Incrementor", "DisclosureTriangle", "Menu", "MenuBar", "ComboBox"]
+        let split = windowFrame.map { $0.minX + $0.width * 0.28 }
+        var main: [ScreenEntry] = [], side: [String] = [], controls: [String] = []
+        for entry in entries {
+            if controlRoles.contains(entry.role) { controls.append(entry.text); continue }
+            if let split, let frame = entry.frame, frame.maxX <= split { side.append(entry.text) } else { main.append(entry) }
+        }
+        main.sort { ($0.frame?.minY ?? .greatestFiniteMagnitude, $0.frame?.minX ?? 0) < ($1.frame?.minY ?? .greatestFiniteMagnitude, $1.frame?.minX ?? 0) }
+        var lines: [String] = []
+        for entry in main where lines.last != entry.text { lines.append(entry.text) }
+        var mainText = lines.joined(separator: "\n")
+        let mainBudget = limit * 3 / 4
+        if mainText.count > mainBudget { mainText = "[earlier content cut] …" + String(mainText.suffix(mainBudget)) }
+        func unique(_ items: [String], _ budget: Int) -> String {
+            var seen = Set<String>(); var kept: [String] = []
+            for item in items where seen.insert(item).inserted { kept.append(item) }
+            let joined = kept.joined(separator: " · ")
+            return joined.count > budget ? String(joined.prefix(budget)) + " …" : joined
+        }
+        return """
+        Application: \(app?.localizedName ?? "Desktop"). Window: \(windowTitle). Page URL: \(pageURL). Focus: \(String(focusedDescription.prefix(1500)))
+        MAIN CONTENT (reading order, latest at the end; only what is visible on screen):
+        \(mainText)
+        SIDEBAR: \(unique(side, limit / 10))
+        BUTTONS AND MENUS: \(unique(controls, limit / 8))
+        """
     }
     var stateSignature: String { String((summary + controls.map(\.detail).joined(separator: "|")).hashValue) }
 }
@@ -153,6 +191,24 @@ final class MacController {
         applications = found.values.sorted { $0.0 < $1.0 }
     }
 
+    /// Electron apps (Claude, Slack, Wispr Flow…) and Chromium browsers hide their web
+    /// content from Accessibility until an assistive app asks for it. Without this the
+    /// Claude window looked empty (2026-09-27). Asked once per process.
+    private static let webLock = NSLock()
+    private static var webExposed = Set<pid_t>()
+    static func exposeWebContent(_ app: NSRunningApplication, root: AXUIElement) {
+        webLock.lock()
+        let first = webExposed.insert(app.processIdentifier).inserted
+        webLock.unlock()
+        guard first else { return }
+        let manual = AXUIElementSetAttributeValue(root, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        let chromium = ["com.google.Chrome", "company.thebrowser.Browser", "com.brave.Browser", "com.microsoft.edgemac"]
+        var enhanced = AXError.attributeUnsupported
+        if let id = app.bundleIdentifier, chromium.contains(id) {
+            enhanced = AXUIElementSetAttributeValue(root, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+        }
+        if manual == .success || enhanced == .success { usleep(600_000) } // let the tree build
+    }
     func snapshot(app: NSRunningApplication?, scanDepth: Int = 1) -> MacSnapshot {
         let start = Date()
         guard let app, AXIsProcessTrusted() else {
@@ -160,6 +216,7 @@ final class MacController {
                 capturedAt: start, captureMS: 0)
         }
         let root = AXUIElementCreateApplication(app.processIdentifier)
+        Self.exposeWebContent(app, root: root)
         AXUIElementSetMessagingTimeout(root, 0.10)
         let windows = (AX.value(root, kAXWindowsAttribute) as? [AXUIElement]) ?? []
         let window = AX.element(root, kAXFocusedWindowAttribute) ?? AX.element(root, kAXMainWindowAttribute) ?? windows.first
@@ -181,6 +238,7 @@ final class MacController {
         var visible: [String] = []; var sources: [ScreenText] = []
         var pageURL = ""; var loading = false; var images = 0; var index = 0
         var visited = Set<CFHashCode>(); var readFailure = false
+        var entries: [ScreenEntry] = []
         let attrs = [kAXRoleAttribute, kAXSubroleAttribute, kAXEnabledAttribute, kAXHiddenAttribute, kAXTitleAttribute, kAXDescriptionAttribute, kAXPlaceholderValueAttribute, kAXValueAttribute]
         func append(_ title: String, _ detail: String, _ kind: ActionKind, _ element: AXUIElement) {
             controls.append(MacAction(id: "control_\(controls.count)", title: title, detail: detail, kind: kind,
@@ -230,6 +288,8 @@ final class MacController {
             if !name.isEmpty || !value.isEmpty {
                 let description = "\(roleName) \(label)\(value.isEmpty ? "" : " value=" + String(value.prefix(2500)))\(enabled ? "" : " [disabled]")"
                 visible.append(description)
+                let plain = [kAXStaticTextRole, "AXHeading"].contains(role)
+                entries.append(ScreenEntry(role: roleName, text: plain ? String((value.isEmpty ? name : value).prefix(4000)) : "\(roleName) '\(label)'\(value.isEmpty ? "" : ": " + String(value.prefix(4000)))", frame: frame))
                 if !value.isEmpty { sources.append(ScreenText(label: location, text: String(value.prefix(4000)))) }
                 else if !name.isEmpty { sources.append(ScreenText(label: location, text: name)) }
             }
@@ -269,7 +329,8 @@ final class MacController {
         return MacSnapshot(app: app, window: window, windowTitle: title, controls: controls, fields: fields,
             focusedField: focusedField, focusedDescription: focusDescription, pageURL: pageURL,
             visibleText: visible, textSources: sources, isForeground: NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier, loading: loading, imageCount: images,
-            complete: window != nil && index >= queue.count && !readFailure, visitedNodes: index, capturedAt: start,
+            complete: window != nil && index >= queue.count && !readFailure, visitedNodes: index,
+            entries: entries, windowFrame: window.flatMap { AX.frame($0) }, capturedAt: start,
             captureMS: Date().timeIntervalSince(start) * 1000)
     }
 
@@ -402,8 +463,22 @@ final class MacController {
             do { defer { up.post(tap: .cghidEventTap) }; try await Task.sleep(nanoseconds: 35_000_000) }
         }
     }
+    /// Key combinations that lock the screen, log out, force-quit or quit the frontmost app.
+    /// Jev once chose Command+Control+Q and Command+Shift+Q when asked to quit Calculator
+    /// (2026-09-27), so these are refused here no matter who asks. Quitting an app goes
+    /// through Claude's "quit" field instead, which terminates only the named app.
+    static func blockedReason(_ code: CGKeyCode, flags: CGEventFlags) -> String? {
+        let command = flags.contains(.maskCommand), control = flags.contains(.maskControl)
+        let shift = flags.contains(.maskShift), option = flags.contains(.maskAlternate)
+        if code == 12 && command && control { return "Command+Control+Q locks the screen" }
+        if code == 12 && command && shift { return "Command+Shift+Q logs out" }
+        if code == 12 && command { return "Command+Q quits whatever app is in front" }
+        if code == 53 && command && option { return "Command+Option+Escape opens Force Quit" }
+        return nil
+    }
     func sendKey(_ code: CGKeyCode, flags: CGEventFlags) throws {
         try Task.checkCancellation()
+        if let reason = Self.blockedReason(code, flags: flags) { throw VoiceError.message("Blocked for safety: \(reason).") }
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true), let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false) else { throw VoiceError.message("Cannot create keyboard events.") }
         down.flags = flags; up.flags = flags
         down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
@@ -426,4 +501,33 @@ final class GlobalHotKey {
         registered = RegisterEventHotKey(UInt32(kVK_Space), UInt32(optionKey), identifier, GetApplicationEventTarget(), 0, &reference) == noErr
     }
     deinit { if let reference { UnregisterEventHotKey(reference) }; if let handler { RemoveEventHandler(handler) } }
+}
+
+/// Hold-to-talk: hold Fn or the right Option key to record, release to send. Reads modifier changes only, globally and
+/// inside the app; Accessibility trust is what allows the global monitor.
+final class HoldToTalkMonitor {
+    var onDown: (() -> Void)?
+    var onUp: (() -> Void)?
+    private var global: Any?
+    private var local: Any?
+    private var held = false
+    init() {
+        global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in self?.handle(event) }
+        local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in self?.handle(event); return event }
+    }
+    private func handle(_ event: NSEvent) {
+        let pressed: Bool
+        switch event.keyCode {
+        case 63: pressed = event.modifierFlags.contains(.function)                  // Fn / Globe
+        case 61: pressed = event.modifierFlags.contains(.option)                    // right Option
+        default: return
+        }
+        guard pressed != held else { return }
+        held = pressed
+        DispatchQueue.main.async { [weak self] in pressed ? self?.onDown?() : self?.onUp?() }
+    }
+    deinit {
+        if let global { NSEvent.removeMonitor(global) }
+        if let local { NSEvent.removeMonitor(local) }
+    }
 }

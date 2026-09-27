@@ -11,10 +11,15 @@ struct UtteranceBuffer {
     private var audioStart: TimeInterval?
     private var audioEnd: TimeInterval?
     private var timedAt: TimeInterval = 0
+    /// Word mode waits for an explicit end phrase; discard phrases clear the buffered request.
+    var sendWords = false
+    static let sendMarkers = ["send it"]
+    static let discardMarkers = ["discard command", "clear command"]
     var text: String { (segments + [partial]).filter { !$0.isEmpty }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines) }
     private var endMarker: String? {
         let normalized = text.lowercased().trimmingCharacters(in: .punctuationCharacters)
-        for marker in ["end of command", "end command", "and command"] {
+        let localizedEnd = VoiceLocalization.words("speech.endMarkers")
+        for marker in ["end of command", "end command"] + localizedEnd + (sendWords ? Self.sendMarkers + VoiceLocalization.words("speech.sendMarkers") : []) {
             guard normalized == marker || normalized.hasSuffix(" " + marker),
                   let range = text.range(of: marker, options: [.caseInsensitive, .backwards]) else { continue }
             let prefix = text[..<range.lowerBound]
@@ -25,10 +30,15 @@ struct UtteranceBuffer {
         return nil
     }
     var explicitEnd: Bool { endMarker != nil }
+    var discardRequested: Bool {
+        guard sendWords else { return false }
+        let normalized = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        return (Self.discardMarkers + VoiceLocalization.words("speech.discardMarkers")).contains { normalized == $0 || normalized.hasSuffix(" " + $0) }
+    }
     var command: String {
         var value = text
         if let marker = endMarker, let range = value.range(of: marker, options: [.caseInsensitive, .backwards]) { value = String(value[..<range.lowerBound]) }
-        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: ",;:-–")))
     }
     mutating func update(_ value: String, at now: TimeInterval) {
         if value != partial { lastTextAt = now }
@@ -60,12 +70,12 @@ struct UtteranceBuffer {
     }
     var silenceRequired: TimeInterval {
         let normalized = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
-        let incomplete = [" and", " and then", " then", " to", " for", " in", " into", " on", " the", " a", " open", " type", " write", " search for", " click", " press", " select", " can you", " could you", " let's", " make", " set", " say", " called", " named", " inside", " once you're there", " and um"]
-        return incomplete.contains(where: normalized.hasSuffix) || ["open", "type", "write", "search", "click", "press"].contains(normalized) ? 2.6 : 0.8
+        let incomplete = ["and", "and then", "then", "to", "for", "in", "into", "on", "the", "a", "open", "type", "write", "search for", "click", "press", "select", "can you", "could you", "let's", "make", "set", "say", "called", "named", "inside", "once you're there", "and um"] + VoiceLocalization.words("speech.incomplete")
+        return incomplete.contains { normalized == $0 || normalized.hasSuffix(" " + $0) } ? 2.6 : 0.8
     }
     func shouldFinish(at now: TimeInterval) -> Bool {
         guard !text.isEmpty else { return false }
         return now - (explicitEnd ? lastTextAt : max(lastTextAt, lastVoiceAt)) >= (explicitEnd ? 0.18 : silenceRequired)
     }
-    mutating func reset() { self = UtteranceBuffer() }
+    mutating func reset() { let words = sendWords; self = UtteranceBuffer(); sendWords = words }
 }

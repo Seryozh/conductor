@@ -13,8 +13,7 @@ struct ContinuousSession {
         guard enabled else { return .ignored }
         let command = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty else { return .ignored }
-        let normalized = command.lowercased().trimmingCharacters(in: .punctuationCharacters)
-        if ["stop listening", "turn off the mic", "turn off microphone", "microphone off", "mic off"].contains(normalized) {
+        if VoiceControl.parse(command) == .stopListening {
             stop(); return .stopped
         }
         guard commands.count < Self.capacity else { return .full }

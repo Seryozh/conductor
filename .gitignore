@@ -45,5 +45,6 @@ jev-*.json
 reports/
 diagnostics/
 
-# Intentionally published, reviewed product demo
-!assets/demo.mp4
+journal.jsonl
+problems.log
+reviews/

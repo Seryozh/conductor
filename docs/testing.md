@@ -1,25 +1,28 @@
-# Tests and diagnostics
+# Checks and diagnostics
 
-[← Back to the README](../README.md)
-
-
-Run the local checks without making paid API calls or executing UI actions:
+Build the app into `dist/`:
 
 ```sh
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --self-test
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --activity-test
+bash build.sh
 ```
 
-The commands below use the same executable in `dist/Jev Voice.app/Contents/MacOS/`:
+The build is unsigned by default. The release workflow packages the app as a ZIP when a version tag is pushed.
 
-- `JevVoice --activity-test`: real-client HTTP fixtures for response validation, cancellation, timeouts, automatic recovery, credit failures and a 4,000-option bounded routing regression.
-- `JevVoice --self-test`: catalogue retention, literal span integrity, keyboard coverage, speech endpoints and continuous queue checks.
-- `JevVoice --router-test --report /absolute/path/report.json`: paid API selection tests with synthetic states, no UI actions.
-- `open 'dist/Jev Voice.app' --args --diagnostics`: start with Settings, the command bar and mic off. Use Back to bar to close Settings.
-- In diagnostics, typing into the command bar uses the same production action loop. Each run writes `jev-picker-last-run.json` beside the app, including original request, every choice catalogue, API inputs/outputs, executed actions and observations. It contains screen text; credentials and headers are excluded. Ordinary launch does not persist these traces.
-- Settings → General → Voice diagnostics → Replay audio command accepts a local recording through the real continuous speech engine and command queue. This is a recorded-audio test, not a physical microphone test. Recordings are not included in this repository; supply your own audio fixture to test continuous recognition and execution. Requests are preserved literally; absent apps are no longer silently substituted.
+## Local checks
 
+The app includes these command-line checks:
 
-GitHub Actions builds the app on a macOS ARM64 runner, verifies its signature, and runs the two local suites. The workflow uses ad-hoc signing and no API credentials. See [GitHub runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+- `--self-test` exercises request parsing, action catalogues, speech buffering, local Whisper formatting, and text-entry fixtures.
+- `--activity-test` exercises TypeSafe API response handling with local HTTP fixtures. It does not need a real key.
+- `--router-test` sends synthetic decision requests to TypeSafe and requires a key saved in macOS Keychain. It uses paid input tokens.
+- `--speech-file-test` accepts a local recording for an Apple Speech transcription check. A recording is not included.
 
-The local suites test code and HTTP handling. They do not measure model accuracy or guarantee that an arbitrary task will finish. Live router tests make paid API calls with the key configured in Keychain. Recorded-audio execution and normal commands can act on your Mac.
+The app has not been launched from this public copy yet. The Claude Code and Codex end-to-end checks, live permissions, screenshots, and real app actions still need a separate approved run. Do not describe either brain as verified until it passes that run.
+
+The standalone arm64 build succeeded in Swift 5 language mode. The compiler still reports async-locking warnings in the brain and Whisper code, plus a deprecation warning for the Keychain interaction API. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. If another Jev Voice copy is installed, choose a distinct bundle identifier before opening this one.
+
+## Diagnostics
+
+Diagnostic logs are off by default. When enabled, logs are stored under the current user's Application Support folder and can include commands and screen text. Check the contents before sharing a log. Separately, the Jev activity panel keeps up to 300 TypeSafe API call records in memory while the app is open; closing the app clears that session history.
+
+A normal voice task can change files, send messages, or control apps because the selected brain has full access. Use an isolated test environment for tasks that have external or hard-to-reverse effects. Stop a task with the Stop button or say `cancel task`.
