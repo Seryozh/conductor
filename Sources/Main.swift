@@ -247,6 +247,15 @@ final class CommandBarPanel: NSPanel {
 @main struct ConductorApp {
     @MainActor static func main() {
         let arguments = CommandLine.arguments
+        func printUsage() {
+            print("""
+            Conductor
+              Launch the app: Conductor [--diagnostics]
+              Inspect it:     Conductor --status | --ui | --look | --look-app
+              Control it:     Conductor --command | --press | --store-key
+              Test it:        Conductor --self-test | --activity-test | --whisper-test
+            """)
+        }
         if arguments.contains("--store-key") { exit(LocalControlCLI.storeKey()) }
         if let flag = arguments.firstIndex(of: "--status") {
             let id = arguments.count > flag + 1 && !arguments[flag + 1].hasPrefix("--") ? arguments[flag + 1] : nil
@@ -354,6 +363,21 @@ final class CommandBarPanel: NSPanel {
             Task { await SelfTests.router(); exit(0) }
             RunLoop.main.add(Timer(timeInterval: 60, repeats: true) { _ in }, forMode: .default); CFRunLoopRun()
             return
+        }
+        if arguments.contains("--help") || arguments.contains("-h") {
+            printUsage(); exit(0)
+        }
+        let allowedGUIFlags: Set<String> = ["--diagnostics"]
+        let unknownFlags = arguments.dropFirst().filter { $0.hasPrefix("-") && !allowedGUIFlags.contains($0) }
+        if !unknownFlags.isEmpty {
+            fputs("Unknown option: \(unknownFlags.joined(separator: ", "))\n", stderr)
+            printUsage(); exit(2)
+        }
+        let bundleID = Bundle.main.bundleIdentifier ?? "ai.conductor.public"
+        if let existing = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .first(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }) {
+            existing.activate(options: [.activateAllWindows])
+            exit(0)
         }
         let application = NSApplication.shared
         let delegate = AppDelegate()
