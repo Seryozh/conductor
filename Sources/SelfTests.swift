@@ -53,6 +53,8 @@ enum SelfTests {
         var localizedBuffer = UtteranceBuffer()
         localizedBuffer.update("Open Safari \(localizedEnd)", at: 1)
         precondition(localizedBuffer.explicitEnd && localizedBuffer.command == "Open Safari")
+        // English completion phrases use the English fallback table.
+        UserDefaults.standard.set("en-US", forKey: "speechLocale")
         precondition(BrainChoice.find("luna")?.effort == "xhigh" && BrainChoice.find("astra")?.codex == true)
         precondition(CodexBrain.tomlString("a\"b\\c\nd café") == "\"a\\\"b\\\\c\\nd café\"")
         precondition(VoiceControl.parse("switch to opus") == .switchModel("opus"))
@@ -85,6 +87,8 @@ enum SelfTests {
             && !OpenApps.keeps("Claude", name: "Notes", bundle: "com.apple.Notes") && !OpenApps.keeps(" ", name: "Notes", bundle: ""))
         print("PASS: closing one app, a list or all except named ones; tool work is not a fake done.")
         print("PASS: all catalogue options preserved, Unicode literal spans, invalid-span rejection, physical keys/modifiers, no typing without a focused field, latest model alias.")
+        // The speech suite below also checks the Russian command resources.
+        UserDefaults.standard.set("ru-RU", forKey: "speechLocale")
         speech()
         continuous()
     }
@@ -105,7 +109,7 @@ enum SelfTests {
         precondition(buffer.command == "open YouTube")
         buffer.voice(at: 20.19) // Explicit endpoint still works with background sound.
         precondition(buffer.shouldFinish(at: 20.2))
-        buffer.reset(); buffer.update("open YouTube and command", at: 30)
+        buffer.reset(); buffer.update("open YouTube end of command", at: 30)
         precondition(buffer.command == "open YouTube" && buffer.explicitEnd)
         buffer.reset(); buffer.update("write \"end command\"", at: 40)
         precondition(!buffer.explicitEnd)
