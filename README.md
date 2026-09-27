@@ -2,7 +2,7 @@
 
 Conductor is a full-access macOS voice-control fork based on Jev Voice by TypeSafe.
 
-This source includes Claude Code and Codex CLI brain options, plus optional local Whisper transcription. Neither brain has passed an end-to-end check in this copy.
+This source includes Claude Code and Codex CLI brain options, plus optional local Whisper transcription.
 
 ![Conductor launch artwork. This illustration is not a screenshot of the app.](assets/social-preview.png)
 
@@ -11,20 +11,20 @@ This source includes Claude Code and Codex CLI brain options, plus optional loca
 ## Demo
 
 <!-- demo:start -->
-The real screen recording is still pending. Both CLI paths need an end-to-end check in this copy before I can show the app working. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
+The real screen recording is still pending. Both CLI paths need an end-to-end check in this copy before I can show them working here. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
 <!-- demo:end -->
 
 ## What is different
 
 Siri handles built-in Mac requests, and Apple Dictation puts speech into text fields ([Siri guide](https://support.apple.com/guide/mac-pro/siri-apdf7bb2fad4/mac), [Dictation guide](https://support.apple.com/en-au/guide/mac-help/mh40584/26/mac/26)). This fork routes spoken requests through a CLI brain, then uses TypeSafe’s Jev action picker to choose a visible control when the task needs one. The CLI also has its own tools for files, shell commands, and web work.
 
-I have not run a controlled comparison with Siri, dictation apps, or other computer-use agents. The numbers below come from my own runs:
+I have not run a controlled comparison with Siri, dictation apps, or other computer-use agents. These numbers came from my earlier private build, on my Mac:
 
 - One spoken command closed 17 apps in 12.6 seconds.
 - Opus 5.5 answered in about 2.5 seconds.
 - Local Whisper had 11.5% word error across 38 recordings, compared with 16.4% for Apple Speech.
 
-These are results from one setup, not a general benchmark. Claude Code and Codex are both in the source, but neither has passed an end-to-end check in this clean copy yet.
+These are results from one setup, not a general benchmark or a measurement of this clean copy.
 
 ## Quick start
 
@@ -38,10 +38,9 @@ Choose Claude Code, Codex CLI, or both.
 
 ```sh
 curl -fsSL https://claude.ai/install.sh | bash
-claude
 ```
 
-Follow the browser sign-in. Claude Code needs a Pro, Max, Team, Enterprise, or Console account. The free Claude plan does not include Claude Code. Check Anthropic’s [current setup and account requirements](https://code.claude.com/docs/en/getting-started#authenticate).
+When the installer finishes, open a new terminal and run `claude`. Follow the browser sign-in with a Claude Pro, Max, Team, or Enterprise account if you want to use your subscription. A Console login is separately billed at API rates, and the free Claude plan does not include Claude Code. Check Anthropic’s [setup and account requirements](https://code.claude.com/docs/en/getting-started#authenticate).
 
 **Codex CLI**
 
@@ -97,7 +96,7 @@ Apple Speech handles live transcription. Conductor asks macOS to keep recognitio
 
 When a task needs a visible control, Conductor reads the app’s Accessibility tree and sends the request, screen text, available actions, and action history as text to TypeSafe’s Jev API. Jev chooses one action. The Swift controller performs it and checks the new state before continuing. TypeSafe receives text, not the audio or screenshots.
 
-The source contains both brain integrations, but they still need end-to-end checks in this clean copy. The [architecture notes](docs/architecture.md) describe the data flow in more detail.
+The [architecture notes](docs/architecture.md) describe the data flow in more detail.
 
 ## Full access
 
@@ -113,7 +112,7 @@ The **Jev activity** panel holds up to 300 TypeSafe API call records in memory w
 
 Jev needs a TypeSafe API key. The current [TypeSafe model page](https://docs.typesafe.ai/models) lists Jev at **$0.042 per million input tokens**; output tokens are free. Check the docs before signing up or estimating usage because prices can change.
 
-Sign in to Claude Code or Codex with the Claude or ChatGPT account you already have, subject to that provider’s plan and usage limits. Both integrations still need an end-to-end check in this copy. Optional Whisper runs locally and uses your Mac’s storage and compute.
+Sign in to Claude Code or Codex with the Claude or ChatGPT subscription you already have, subject to that provider’s plan and usage limits. If you sign in to Claude Code through Claude Console, Anthropic [bills that usage separately at API rates](https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage). Optional Whisper runs locally and uses your Mac’s storage and compute.
 
 The tag workflow builds an unsigned ZIP. Signing and notarizing a public macOS download needs an Apple Developer Program membership, currently **$99 USD per year**, and a Developer ID certificate. I have not decided whether to enroll. See [Apple’s enrollment page](https://developer.apple.com/programs/enroll/) and [notarization overview](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
@@ -137,7 +136,7 @@ No. Apple Speech is the default. Whisper is optional and runs locally.
 
 **Can I use my existing Claude or ChatGPT subscription?**
 
-The CLI uses the account you sign in with. The supported plan and its usage limits depend on the provider and can change. The end-to-end checks for both CLI paths are still open in this copy.
+Yes, if your plan includes CLI access and you sign in with that subscription. A Claude Console login uses separately billed API usage. The provider’s plan and usage limits can change.
 
 **Can I publish or redistribute the fork?**
 

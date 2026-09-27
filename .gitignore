@@ -38,6 +38,7 @@ secrets*
 *.m4a
 *.mp4
 *.MP4
+!Resources/ConductorStates/*.mp4
 *.mov
 *.log
 jev-*.json

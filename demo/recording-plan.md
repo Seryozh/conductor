@@ -1,20 +1,20 @@
 # Demo recording plan
 
-Record a 30–40 second screen capture with your own voice after the scratch app and both CLI brains have passed their end-to-end checks. Use only a disposable test setup. Do not show private windows, real files, messages, or account details.
+Record a 30–40 second screen capture with your own voice after both CLI brains have passed their end-to-end checks in the public app. Open throwaway apps for the first command, and keep private windows, files, messages, and account details off screen.
 
 ## Shot list and spoken script
 
 | Time | Screen and action | Spoken line |
 | --- | --- | --- |
-| 0–3 s | Show the real command bar, turn the mic on, and begin the request. Do not add title text over the app. | Begin: “Calculate 18 times 27, open Notes, and write the result in a new note.” |
-| 3–12 s | Finish the request and show Calculator produce 486. | Continue the same spoken request through the app. |
-| 12–22 s | Show Notes open and the new note appear with the result. Keep the actual app window visible. | Voiceover: “The answer is in Notes, and Calculator is still open.” |
-| 22–28 s | Turn the mic on, ask Conductor to place Calculator on the left and Notes on the right, then show both windows. | Say the arrangement request through Conductor. |
-| 28–38 s | Say, “Wait 20 seconds before replying. Do not change anything.” Turn the mic off, open Settings → Advanced → Full access and privacy, then click Stop while the request is still running. | Voiceover: “The CLI can run commands, use apps, and read or change files available to this account. I can stop it here, and macOS privacy permissions still apply.” |
+| 0–3 s | Open on the real moment several throwaway app windows disappear. Use a clip from the first command's actual recording if the command takes longer than three seconds to start working. Keep Conductor visible. | “I asked it to clear the apps I opened for this demo.” |
+| 3–13 s | Show the spoken request and the remaining apps closing. Keep the actual response at normal speed. | “Close these test apps, but leave Conductor and the recorder open.” |
+| 13–25 s | Ask for a calculation and a new note, then show `486` appear in Notes. Keep the Mac windows visible. | “Calculate 18 times 27 and put the result in a new note.” |
+| 25–32 s | Ask Conductor to place Calculator on the left and Notes on the right, then show both windows. | “Put Calculator on the left and Notes on the right.” |
+| 32–40 s | Start a harmless waiting task and click Stop while it is still running. Show the actual Stop button. | Say, “Wait 20 seconds before replying. Do not change anything.” Add voiceover afterward: “I can stop it here.” |
 
-The four moments are the cross-app request, the new note, side-by-side windows, and the visible Stop button. Add the narration as a separate voiceover after the screen capture so it is not sent as another command. Keep the cursor visible when it explains what happened. Do not speed up the app response. If a task fails or the recording does not show the result, record it again instead of narrating over a miss.
+The four moments are closing the throwaway apps, putting an answer in Notes, arranging two windows, and stopping a task. The first shot is a cold open from the real recording; do not stage a result or present a different build as the public app. Add narration as a separate voiceover after the screen capture so it is not sent as another command. Trim idle time between commands, but do not speed up a response. If a task fails or the recording does not show the result, record it again instead of narrating over a miss. Adjust the shot lengths to the measured run while keeping the finished video between 30 and 40 seconds.
 
-The 17-app close result is an owner-reported measurement from a prior run. Use it in a separate cut only if you safely repeat and record that exact task on a disposable setup. Never close personal work apps for the demo.
+The 17-app close result is an owner-reported measurement from a prior private build. Put that number or its 12.6-second timing on screen only if the public app repeats and records that exact result on the throwaway setup.
 
 ## Turn your recording into the README GIF
 
