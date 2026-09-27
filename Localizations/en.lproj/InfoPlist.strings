@@ -1,0 +1,3 @@
+"NSAppleEventsUsageDescription" = "Conductor uses Apple Events to control apps when you ask it to.";
+"NSMicrophoneUsageDescription" = "Conductor listens while voice control is active.";
+"NSSpeechRecognitionUsageDescription" = "Conductor transcribes voice commands on your Mac.";

@@ -195,8 +195,8 @@ struct JSONBodyView: NSViewRepresentable {
         view.isEditable = false; view.isSelectable = true
         view.isRichText = false
         view.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-        view.textColor = NSColor(white: 0.88, alpha: 1)
-        view.backgroundColor = NSColor(red: 0.04, green: 0.05, blue: 0.07, alpha: 1)
+        view.textColor = NSColor(Palette.foreground)
+        view.backgroundColor = NSColor(Palette.background)
         view.textContainerInset = NSSize(width: 12, height: 12)
         view.autoresizingMask = [.width]
         view.isVerticallyResizable = true

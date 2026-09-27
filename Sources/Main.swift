@@ -12,23 +12,27 @@ final class CommandBarPanel: NSPanel {
     let model = AppModel()
     var window: NSWindow!
     var overlay: NSPanel!
-    var answer: NSPanel!
     var practice: NSWindow?
     var statusItem: NSStatusItem!
     var hotkey: GlobalHotKey!
     var holdToTalk: HoldToTalkMonitor!
     var barHidden = false
     var pointerGeneration = 0
+    let surfaceLimits = CommandSurfaceLimits()
+    var requestedSurfaceSize = NSSize(width: CommandBarView.width, height: CommandBarView.railHeight)
+    var commandAnchor: NSPoint?
+    var resizingSurface = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 690, height: 650), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 840, height: 680), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = NSLocalizedString("Conductor Settings", comment: "Settings window title")
+        window.minSize = NSSize(width: 760, height: 620)
         window.titlebarAppearsTransparent = true
         window.backgroundColor = NSColor(Palette.background)
         window.contentView = NSHostingView(rootView: SettingsView(model: model))
         window.isReleasedWhenClosed = false
         window.center()
-        overlay = CommandBarPanel(contentRect: NSRect(x: 0, y: 0, width: CommandBarView.width, height: 60), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        overlay = CommandBarPanel(contentRect: NSRect(x: 0, y: 0, width: CommandBarView.width, height: CommandBarView.railHeight), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         overlay.title = NSLocalizedString("Conductor command bar", comment: "Command bar window title")
         overlay.isOpaque = false; overlay.backgroundColor = .clear; overlay.hasShadow = true
         overlay.level = .floating; overlay.hidesOnDeactivate = false
@@ -36,18 +40,16 @@ final class CommandBarPanel: NSPanel {
         overlay.isMovableByWindowBackground = true
         overlay.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         overlay.tabbingMode = .disallowed
+        overlay.delegate = self
         overlay.contentView = NSHostingView(rootView: CommandBarView(model: model,
             openSettings: { [weak self] in self?.showSettings() },
-            releaseKeyboard: { [weak self] in self?.releaseBarKeyboard() }))
-        answer = CommandBarPanel(contentRect: NSRect(x: 0, y: 0, width: 488, height: 120), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        answer.title = NSLocalizedString("Conductor answer", comment: "Answer window title")
-        answer.isOpaque = false; answer.backgroundColor = .clear; answer.hasShadow = true
-        answer.level = .floating; answer.hidesOnDeactivate = false
-        answer.isFloatingPanel = true; answer.becomesKeyOnlyIfNeeded = true
-        answer.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        answer.contentView = NSHostingView(rootView: AnswerView(model: model))
+            releaseKeyboard: { [weak self] in self?.releaseBarKeyboard() },
+            resize: { [weak self] size in self?.resizeCommandSurface(to: size) }, limits: surfaceLimits))
         model.showAnswer = { [weak self] in self?.presentAnswer() }
-        model.hideAnswer = { [weak self] in self?.answer.orderOut(nil) }
+        model.hideAnswer = { [weak self] in
+            guard let self else { return }
+            if self.barHidden { self.overlay.orderOut(nil) }
+        }
         model.showOverlay = { [weak self] in self?.presentOverlay() }
         model.hideOverlay = {} // Pausing the microphone keeps the command bar available.
         model.beforeRequest = { [weak self] in self?.releaseBarKeyboard() }
@@ -174,29 +176,44 @@ final class CommandBarPanel: NSPanel {
         if (notification.object as? NSWindow) == practice { model.practiceActive = false }
     }
     func presentAnswer() {
-        guard let overlay, let answer, !model.answerText.isEmpty else { return }
-        // Height from the real text size, so long answers get room (up to 75% of the screen)
-        // and short ones stay small; the text scrolls beyond that.
-        let style = NSMutableParagraphStyle(); style.lineSpacing = AnswerView.lineSpacing
-        let text = NSAttributedString(string: model.answerText, attributes: [.font: AnswerView.textFont, .paragraphStyle: style])
-        let textHeight = ceil(text.boundingRect(with: NSSize(width: AnswerView.width - 2 * AnswerView.horizontalPadding - 6, height: .greatestFiniteMagnitude),
-                                                options: [.usesLineFragmentOrigin, .usesFontLeading]).height)
-        let usage: CGFloat = model.usageLine.isEmpty ? 0 : 36
-        let extras: CGFloat = 28 + 22 + 10 + (model.shotsThisCommand > 0 ? 60 : 0) + 12 + usage + 30 + 8
-        let screen = overlay.screen ?? NSScreen.main
-        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1400, height: 900)
-        let height = min(visible.height * 0.75, textHeight + extras)
-        let x = min(max(visible.minX + 8, overlay.frame.midX - AnswerView.width / 2), visible.maxX - AnswerView.width - 8)
-        answer.setFrame(NSRect(x: x, y: max(visible.minY + 8, overlay.frame.minY - height - 8), width: AnswerView.width, height: height), display: true)
-        answer.orderFrontRegardless()
+        guard !model.answerText.isEmpty else { return }
+        // A response uses the same nonactivating surface. It can still be shown after
+        // the user hides the idle bar, matching the previous answer-window callback.
+        if commandAnchor == nil { positionCommandSurface() }
+        overlay.orderFrontRegardless()
+    }
+    func resizeCommandSurface(to size: NSSize) {
+        requestedSurfaceSize = size
+        positionCommandSurface()
+    }
+    private func positionCommandSurface() {
+        guard let overlay else { return }
+        let pointerScreen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
+        let screen = commandAnchor == nil ? (pointerScreen ?? NSScreen.main) : (overlay.screen ?? pointerScreen ?? NSScreen.main)
+        guard let screen else { return }
+        let visible = screen.visibleFrame
+        let availableWidth = max(240, min(600, visible.width - 16))
+        let availableHeight = max(CommandBarView.railHeight, min(520, visible.height - 16))
+        if surfaceLimits.width != availableWidth { surfaceLimits.width = availableWidth }
+        if surfaceLimits.height != availableHeight { surfaceLimits.height = availableHeight }
+        if commandAnchor == nil { commandAnchor = NSPoint(x: visible.midX, y: visible.minY + 24) }
+        let frame = CommandPanelGeometry.frame(size: requestedSurfaceSize, anchor: commandAnchor!, visibleFrame: visible)
+        guard !NSEqualRects(frame, overlay.frame) else { return }
+        resizingSurface = true
+        overlay.setFrame(frame, display: true)
+        resizingSurface = false
+    }
+    func windowDidMove(_ notification: Notification) {
+        guard let moved = notification.object as? NSWindow, moved === overlay, !resizingSurface else { return }
+        commandAnchor = NSPoint(x: moved.frame.midX, y: moved.frame.minY)
+    }
+    func windowDidChangeScreen(_ notification: Notification) {
+        guard let moved = notification.object as? NSWindow, moved === overlay, !resizingSurface else { return }
+        positionCommandSurface()
     }
     func presentOverlay() {
         guard !barHidden, let overlay else { return }
-        let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
-        if let screen, !overlay.isVisible || !screen.visibleFrame.contains(CGPoint(x: overlay.frame.midX, y: overlay.frame.midY)) {
-            overlay.setFrameOrigin(NSPoint(x: screen.visibleFrame.midX - overlay.frame.width / 2,
-                y: screen.visibleFrame.maxY - overlay.frame.height - 12))
-        }
+        positionCommandSurface()
         overlay.orderFrontRegardless()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
