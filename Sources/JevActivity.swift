@@ -87,6 +87,61 @@ struct JevCallHistory {
     }
 }
 
+/// Localize presentation only; activity records retain their original request and response text.
+private enum ActivityText {
+    static func status(_ call: JevCallRecord) -> String {
+        if call.pending { return NSLocalizedString(call.status, comment: "Jev call status") }
+        if let httpStatus = call.httpStatus {
+            let key = call.error == nil ? "HTTP %lld" : "HTTP %lld · Failed"
+            return String.localizedStringWithFormat(NSLocalizedString(key, comment: "Jev HTTP status"), httpStatus)
+        }
+        return NSLocalizedString(call.status, comment: "Jev call status")
+    }
+
+    static func stage(_ stage: String) -> String {
+        switch stage {
+        case "Decision", "Connection check": return NSLocalizedString(stage, comment: "Jev call stage")
+        default: break
+        }
+        guard stage.hasPrefix("Round "), let separator = stage.range(of: " · "),
+              let round = Int(stage[stage.index(stage.startIndex, offsetBy: 6)..<separator.lowerBound]) else { return stage }
+        let key: String
+        switch stage[separator.upperBound...] {
+        case "Choose action": key = "Round %lld · Choose action"
+        case "Verify completion": key = "Round %lld · Verify completion"
+        case "Choose typing payload": key = "Round %lld · Choose typing payload"
+        case "Choose key combination": key = "Round %lld · Choose key combination"
+        case "Choose drag targets": key = "Round %lld · Choose drag targets"
+        default: return stage
+        }
+        return String.localizedStringWithFormat(NSLocalizedString(key, comment: "Jev call stage"), round)
+    }
+
+    static func callTitle(_ call: JevCallRecord) -> String {
+        String.localizedStringWithFormat(NSLocalizedString("Call #%lld · %@", comment: "Jev call title"), call.number, stage(call.stage))
+    }
+
+    static func callAccessibility(_ call: JevCallRecord) -> String {
+        String.localizedStringWithFormat(NSLocalizedString("Jev call %lld: %@, %@", comment: "Jev call accessibility label"), call.number, stage(call.stage), status(call))
+    }
+
+    static func copyTitle(_ tab: String) -> String {
+        switch tab {
+        case "Input": return NSLocalizedString("Copy input", comment: "Copy Jev request")
+        case "Result": return NSLocalizedString("Copy result", comment: "Copy observed result")
+        default: return NSLocalizedString("Copy output", comment: "Copy Jev response")
+        }
+    }
+
+    static func bodyLabel(_ tab: String) -> String {
+        switch tab {
+        case "Input": return NSLocalizedString("Full Jev request JSON", comment: "Jev request accessibility label")
+        case "Result": return NSLocalizedString("Observed action result", comment: "Jev result accessibility label")
+        default: return NSLocalizedString("Full Jev response JSON", comment: "Jev response accessibility label")
+        }
+    }
+}
+
 struct JevActivityView: View {
     @ObservedObject var model: AppModel
     @State private var selectedID: UUID?
@@ -128,26 +183,27 @@ struct JevActivityView: View {
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("#\(call.number)").font(.system(size: 11, design: .monospaced)).frame(width: 38, alignment: .leading)
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(call.stage).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                                        Text(ActivityText.stage(call.stage)).font(.system(size: 12, weight: .medium)).lineLimit(1)
                                         Text(call.command).font(.system(size: 10)).foregroundStyle(Palette.muted).lineLimit(1)
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 3) {
-                                        Text(call.status).foregroundStyle(call.error != nil ? .orange : Palette.accent)
+                                        Text(ActivityText.status(call)).foregroundStyle(call.error != nil ? .orange : Palette.accent)
                                         Text(call.startedAt, style: .time).foregroundStyle(Palette.muted)
                                     }.font(.system(size: 10, design: .monospaced))
                                 }.padding(10).contentShape(Rectangle())
                                     .background(selected?.id == call.id ? Palette.accent.opacity(0.10) : Palette.panel, in: RoundedRectangle(cornerRadius: 8))
-                            }.buttonStyle(.plain).accessibilityLabel("Jev call \(call.number): \(call.stage), \(call.status)")
+                            }.buttonStyle(.plain).accessibilityLabel(ActivityText.callAccessibility(call))
                         }
                     }
                 }.frame(height: CGFloat(min(3, model.jevHistory.calls.count) * 54))
                 if let call = selected {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text("Call #\(call.number) · \(call.stage)").font(.system(size: 13, weight: .semibold))
+                            Text(ActivityText.callTitle(call)).font(.system(size: 13, weight: .semibold))
                             Spacer()
-                            Text("\(call.optionCount) options" + (call.milliseconds.map { " · \(Int($0)) ms" } ?? ""))
+                            Text(String.localizedStringWithFormat(NSLocalizedString("%lld options", comment: "Jev option count"), call.optionCount)
+                                 + (call.milliseconds.map { String.localizedStringWithFormat(NSLocalizedString(" · %lld ms", comment: "Jev response time"), Int($0)) } ?? ""))
                                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(Palette.muted)
                         }
                         Text(call.command).font(.system(size: 12)).textSelection(.enabled)
@@ -163,12 +219,12 @@ struct JevActivityView: View {
                                 Text("Output from Jev").tag("Output")
                                 Text("Observed result").tag("Result")
                             }.pickerStyle(.segmented).labelsHidden()
-                            Button("Copy \(bodyTab.lowercased())") {
+                            Button(ActivityText.copyTitle(bodyTab)) {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(bodyText(call), forType: .string)
                             }.font(.system(size: 11))
                         }
-                        JSONBodyView(text: bodyText(call), label: bodyTab == "Input" ? "Full Jev request JSON" : bodyTab == "Output" ? "Full Jev response JSON" : "Observed action result")
+                        JSONBodyView(text: bodyText(call), label: ActivityText.bodyLabel(bodyTab))
                             .frame(height: 300).clipShape(RoundedRectangle(cornerRadius: 9))
                         Text("POST " + (call.endpoint ?? JevClient.endpoint.absoluteString)).font(.system(size: 9, design: .monospaced)).foregroundStyle(Palette.muted)
                     }
@@ -178,8 +234,9 @@ struct JevActivityView: View {
     }
     private func bodyText(_ call: JevCallRecord) -> String {
         if bodyTab == "Input" { return call.input }
-        if bodyTab == "Result" { return call.outcome ?? "This call selected or checked an option. No computer action result is attached to this call." }
-        return call.output ?? (call.pending ? "Waiting for Jev…" : "No response body was received.\n" + (call.error ?? ""))
+        if bodyTab == "Result" { return call.outcome ?? NSLocalizedString("This call selected or checked an option. No computer action result is attached to this call.", comment: "No observed computer action") }
+        return call.output ?? (call.pending ? NSLocalizedString("Waiting for Jev…", comment: "Pending Jev response body")
+                               : NSLocalizedString("No response body was received.", comment: "Missing Jev response body") + "\n" + (call.error ?? ""))
     }
 }
 

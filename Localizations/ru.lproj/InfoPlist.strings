@@ -1,3 +1,3 @@
 "NSAppleEventsUsageDescription" = "Conductor использует Apple Events для управления приложениями по вашему запросу.";
 "NSMicrophoneUsageDescription" = "Conductor использует микрофон, пока включено голосовое управление.";
-"NSSpeechRecognitionUsageDescription" = "Conductor расшифровывает голосовые команды на этом Mac.";
+"NSSpeechRecognitionUsageDescription" = "Conductor использует Apple Speech для распознавания голосовых команд. Если распознавание на устройстве недоступно, Apple может обрабатывать речь через интернет.";

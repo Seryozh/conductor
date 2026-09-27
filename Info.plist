@@ -15,5 +15,5 @@
 <key>NSHighResolutionCapable</key><true/>
 <key>NSAppleEventsUsageDescription</key><string>Conductor uses Apple Events to control apps when you ask it to.</string>
 <key>NSMicrophoneUsageDescription</key><string>Conductor listens while voice control is active.</string>
-<key>NSSpeechRecognitionUsageDescription</key><string>Conductor transcribes voice commands on your Mac.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>Conductor uses Apple Speech to transcribe voice commands. Apple may process speech online when on-device recognition is unavailable.</string>
 </dict></plist>

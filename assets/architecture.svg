@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
   <title id="title">Conductor architecture</title>
-  <desc id="desc">Voice is transcribed on the Mac, Claude Code or Codex works as the full-access reasoning brain, TypeSafe Jev selects among discovered interface actions, and a native Swift controller performs and checks the action. macOS privacy permissions still apply.</desc>
+  <desc id="desc">Apple Speech transcribes voice commands and may use Apple's network service. Optional Whisper runs locally. Claude Code or Codex works as the full-access reasoning brain, TypeSafe Jev selects among discovered interface actions, and a native Swift controller performs and checks the action. macOS privacy permissions still apply.</desc>
   <defs>
     <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101012"/><stop offset="1" stop-color="#1a1917"/></linearGradient>
     <linearGradient id="amber" x2="1"><stop stop-color="#f4a900"/><stop offset="1" stop-color="#ffd36a"/></linearGradient>
@@ -18,12 +18,12 @@
   </defs>
   <rect width="1280" height="720" rx="24" fill="url(#bg)"/>
   <text x="64" y="72" class="title">How Conductor moves a request through macOS</text>
-  <text x="64" y="102" class="sub">Local speech, a full-access CLI brain, TypeSafe Jev, and native Mac controls.</text>
+  <text x="64" y="102" class="sub">Speech input, a full-access CLI brain, TypeSafe Jev, and native Mac controls.</text>
 
   <rect x="64" y="170" width="222" height="154" rx="18" class="card"/>
   <text x="88" y="208" class="chip" fill="#f7b733">VOICE INPUT</text>
   <text x="88" y="242" class="head">You speak or type</text>
-  <text x="88" y="274" class="body">Apple Speech on device</text>
+  <text x="88" y="274" class="body">Apple Speech</text>
   <text x="88" y="298" class="body">Optional local Whisper</text>
 
   <rect x="344" y="142" width="326" height="208" rx="18" class="card"/>
@@ -37,8 +37,8 @@
   <rect x="732" y="142" width="242" height="208" rx="18" class="card"/>
   <text x="758" y="180" class="chip" fill="#f7b733">ACTION PICKER</text>
   <text x="758" y="214" class="head">TypeSafe Jev</text>
-  <text x="758" y="246" class="body">Gets request, screen text and choices</text>
-  <text x="758" y="266" class="body">plus action history</text>
+  <text x="758" y="246" class="body">Request and screen text</text>
+  <text x="758" y="266" class="body">Choices and action history</text>
   <text x="758" y="294" class="body">Chooses one available action</text>
   <text x="758" y="322" class="body">No image or audio sent to Jev</text>
   <text x="758" y="342" class="small">Requires a separate TypeSafe API key</text>
@@ -48,7 +48,7 @@
   <text x="1060" y="242" class="head">Swift controller</text>
   <text x="1060" y="274" class="body">Accessibility</text>
   <text x="1060" y="298" class="body">Apple Events</text>
-  <text x="1060" y="322" class="body">Keyboard and pointer</text>
+  <text x="1060" y="322" class="body">Keyboard, pointer</text>
 
   <path d="M286 247H334" class="flow"/>
   <path d="M974 247H1026" class="flow"/>
@@ -63,4 +63,5 @@
   <text x="92" y="536" class="chip" fill="#f7b733">FULL ACCESS, WITH MACOS PRIVACY GRANTS</text>
   <text x="92" y="572" class="body">The CLI can read and change files, run commands, and control apps without approval before each step.</text>
   <text x="92" y="602" class="body">Stop with the button or “cancel task.” Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation grants still apply.</text>
+  <text x="92" y="626" class="small">Apple Speech may use Apple's network service when on-device recognition is unavailable.</text>
 </svg>
