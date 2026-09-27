@@ -770,8 +770,8 @@ struct PracticeView: View {
             RoundedRectangle(cornerRadius: 15).fill(color).frame(height: 100)
                 .overlay(Text(result).font(.system(size: 18, weight: .medium)).foregroundStyle(Palette.background)).accessibilityLabel(result)
             HStack(spacing: 12) {
-                Button("Blue") { color = .cyan; result = "Blue selected" }.accessibilityLabel("Blue")
-                Button("Coral") { color = .orange; result = "Coral selected" }.accessibilityLabel("Coral")
+                Button { color = .cyan; result = "Blue selected" } label: { Text(verbatim: "Blue") }.accessibilityLabel(Text(verbatim: "Blue"))
+                Button { color = .orange; result = "Coral selected" } label: { Text(verbatim: "Coral") }.accessibilityLabel(Text(verbatim: "Coral"))
                 Button("Reset") { color = Palette.accent; result = "Pick a color with your voice."; text = "" }
             }.buttonStyle(ConductorButtonStyle())
             TextField("Practice text", text: $text).textFieldStyle(.roundedBorder).accessibilityLabel("Practice text")
