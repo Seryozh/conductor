@@ -8,18 +8,22 @@ bash build.sh
 
 The build is unsigned by default. The release workflow packages the app as a ZIP when a version tag is pushed.
 
-## Local checks
+## Latest verification
 
-The app includes these command-line checks:
+On 2026-09-27, the current public source compiled in Swift 5 language mode for arm64 to `/tmp/conductor-public-verify-Gb7WeP/Conductor.app`. The scratch build used bundle ID `ai.conductor.public.preview`; the GUI was not opened. The executable is arm64, the packaged icon matches `AppIcon.icns`, and `Info.plist` plus the English and Russian string tables pass `plutil` checks.
 
-- `--self-test` exercises request parsing, action catalogues, speech buffering, local Whisper formatting, and text-entry fixtures.
+The native UI integration task reports passing input-field and queue checks, screen-state fixtures, geometry checks, and an independent design review. Its full `--self-test` run still fails at `Sources/SelfTests.swift:65`: the current completion detector treats ordinary words such as “opened” in “You opened Calculator at 8:44” and “closing” in explanatory prose as completion claims. This is a runtime detection issue, not a UI fixture failure, and remains open.
+
+The GUI app has not been opened from this public copy. Claude Code and Codex have not been checked end to end here. TypeSafe live requests, Whisper server behavior, macOS permission prompts, real app actions, and real screenshots remain unverified. Do not describe either brain as verified until it passes a separately approved run.
+
+## Available checks
+
+- `--self-test` exercises request parsing, action catalogues, speech buffering, local Whisper formatting, and text-entry fixtures. It currently fails on the completion-detection cases above.
 - `--activity-test` exercises TypeSafe API response handling with local HTTP fixtures. It does not need a real key.
 - `--router-test` sends synthetic decision requests to TypeSafe and requires a key saved in macOS Keychain. It uses paid input tokens.
 - `--speech-file-test` accepts a local recording for an Apple Speech transcription check. A recording is not included.
 
-The app has not been launched from this public copy yet. The Claude Code and Codex end-to-end checks, live permissions, screenshots, and real app actions still need a separate approved run. Do not describe either brain as verified until it passes that run.
-
-The source compiled in Swift 5 language mode for arm64 with no compiler warnings. The scratch app used bundle ID `ai.conductor.public.preview`, included the Conductor app icon, and was not opened. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. Use a bundle identifier distinct from any other Conductor copy before opening this one.
+Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. Use a bundle identifier distinct from any other Conductor copy before opening this one.
 
 ## Diagnostics
 
