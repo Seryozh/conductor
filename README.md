@@ -11,7 +11,7 @@ This source includes Claude Code and Codex CLI brain options, plus optional loca
 ## Demo
 
 <!-- demo:start -->
-The real screen recording is still pending. Both CLI paths need an end-to-end check in this copy before I can show them working here. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
+The voice demo is still pending. In a live check of this public build, Codex opened Calculator and completed `(6 + 7) × 5`, with `65` visible on screen. Claude's live check is waiting for the account's weekly limit to reset. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
 <!-- demo:end -->
 
 ## What is different
@@ -99,6 +99,8 @@ Apple Speech handles live transcription. Conductor asks macOS to keep recognitio
 The brain can open and close apps, arrange windows, open desktop sessions, and press an exact named control through the Swift controller. When it asks Jev to choose a visible control, Conductor reads the app’s Accessibility tree and sends the request, screen text, available actions, and action history through TypeSafe or OpenRouter. Jev chooses one action. The controller performs it and checks the new state before continuing. The selected Jev provider receives text, not the audio or screenshots.
 
 The [architecture notes](docs/architecture.md) describe the data flow in more detail.
+
+Optional local instructions and agent integrations are configured on each user's Mac. They are disabled until configured and do not depend on the original author's files. See [local integrations](docs/local-integrations.md).
 
 ## Full access
 

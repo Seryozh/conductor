@@ -14,7 +14,9 @@ On 2026-09-27, the integrated public source and motion resources compiled in Swi
 
 The UI was checked using native screen-state renders, window geometry tests, and an isolated playback fixture. Seven state loops, static posters, rapid transitions, a maximum of two overlapping players, Reduce Motion behavior, hide/show cleanup, and missing/malformed media fallback were checked. The final independent visual review requested answer-layout corrections; those corrections were applied and personally inspected in native renders, without another independent review. Fixture images contain sample data, not completed real requests.
 
-The setup task is checking the installed app separately. This validation does not establish end-to-end Claude Code or Codex behavior, TypeSafe live requests, the Whisper server, real Fn dictation, focus handoff, pointer passthrough or Spaces. Do not describe those paths as verified based on fixture results. The hosted release workflow has not run.
+The installed public build completed a live Codex task on 2026-09-27: it opened Calculator and entered `(6 + 7) × 5`. An independent app-scoped screenshot showed `13×5` and `65`, and the command receipt was `done`. The final command panel identified GPT-6 Astra. This check started through local command control, so it does not establish voice capture. A TypeSafe connection check also returned a real ready decision.
+
+Claude's live check is waiting for the account's weekly limit to reset. Runtime status reports Whisper configured, but this does not prove that its server transcribed a recording. Real Fn dictation, recording replay, desktop session-message flows, focus handoff, pointer passthrough and Spaces remain unchecked. The hosted release workflow has not run.
 
 ## Available checks
 
@@ -28,6 +30,6 @@ Check that `xcode-select -p` points to installed Xcode Command Line Tools before
 
 ## Diagnostics
 
-Diagnostic logs are off by default. When enabled, logs are stored under the current user's Application Support folder and can include commands and screen text. Check the contents before sharing a log. Separately, the Jev activity panel keeps up to 300 TypeSafe API call records in memory while the app is open; closing the app clears that session history.
+Diagnostic logs are off by default. When enabled, logs are stored under the current user's Application Support folder with owner-only permissions. Common key and token formats are redacted; commands and screen text can still contain private information. Check the contents before sharing a log. Separately, the Jev activity panel keeps up to 300 Jev API call records in memory while the app is open; closing the app clears that session history.
 
 A normal voice task can change files, send messages, or control apps because the selected brain has full access. Use an isolated test environment for tasks that have external or hard-to-reverse effects. Stop a task with the Stop button or say `cancel task`.

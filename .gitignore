@@ -49,3 +49,10 @@ diagnostics/
 journal.jsonl
 problems.log
 reviews/
+HANDOFF.md
+launch/
+knowledge/
+tools/
+tool-wishes.md
+restore-key.py
+rebuild-local.sh

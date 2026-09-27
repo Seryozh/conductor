@@ -46,7 +46,7 @@ if text.count(start) != 1 or text.count(end) != 1:
     raise SystemExit('README demo markers are missing or duplicated; GIF was saved but not embedded.')
 before, rest = text.split(start, 1)
 current, after = rest.split(end, 1)
-if 'real screen recording is still pending' not in current and 'assets/demo.gif' not in current:
+if not any(marker in current for marker in ('real screen recording is still pending', 'voice demo is still pending', 'assets/demo.gif')):
     raise SystemExit('README demo section was edited; GIF was saved but not embedded.')
 readme.write_text(before + start + '\n\n![Conductor demo](assets/demo.gif)\n\n' + end + after)
 PY
