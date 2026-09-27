@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 enum VoiceError: LocalizedError {
@@ -20,11 +21,12 @@ enum KeyStore {
     static var service: String { "ai.jev.voice.public.\(Bundle.main.bundleIdentifier ?? "app")" }
     static func read() -> String? {
         // Never block application startup behind an OS Keychain dialog.
-        SecKeychainSetUserInteractionAllowed(false)
-        defer { SecKeychainSetUserInteractionAllowed(true) }
+        let context = LAContext()
+        context.interactionNotAllowed = true
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: "api-key",
-            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: context]
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
               let data = result as? Data else { return nil }
@@ -33,10 +35,11 @@ enum KeyStore {
     static func save(_ key: String) throws {
         let clean = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard JevProvider.detect(key: clean) != nil, !clean.contains(where: \.isWhitespace) else { throw VoiceError.message("Enter a TypeSafe API key from console.typesafe.ai.") }
-        SecKeychainSetUserInteractionAllowed(false)
-        defer { SecKeychainSetUserInteractionAllowed(true) }
+        let context = LAContext()
+        context.interactionNotAllowed = true
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service, kSecAttrAccount as String: "api-key"]
+            kSecAttrService as String: service, kSecAttrAccount as String: "api-key",
+            kSecUseAuthenticationContext as String: context]
         let data = Data(clean.utf8)
         var accessQuery = query
         accessQuery[kSecReturnData as String] = true

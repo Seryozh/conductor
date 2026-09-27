@@ -229,7 +229,10 @@ final class ClaudeBrain: @unchecked Sendable, BrainPlanner {
                 if stale { self.finish(.failure(VoiceError.message("Claude did not answer within \(Int(timeout)) seconds."))); self.stop() }
             }
         }
-        lock.lock(); turns += 1; let tools = pendingTools; lock.unlock()
+        let tools = lock.withLock { () -> [String] in
+            turns += 1
+            return pendingTools
+        }
         var reply = try Self.parse(result)
         reply.toolActions = tools
         return reply

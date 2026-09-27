@@ -12,7 +12,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 xcrun swiftc -swift-version 5 -target "$ARCH-apple-macos14.0" -O -parse-as-library \
   -framework AppKit -framework SwiftUI -framework Speech -framework AVFoundation \
-  -framework ApplicationServices -framework Security -framework Carbon \
+  -framework ApplicationServices -framework Security -framework LocalAuthentication -framework Carbon \
   "$SOURCE_DIR"/Sources/*.swift -o "$APP/Contents/MacOS/JevVoice"
 cp "$SOURCE_DIR/Info.plist" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP/Contents/Info.plist"

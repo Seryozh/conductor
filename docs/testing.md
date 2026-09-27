@@ -19,7 +19,7 @@ The app includes these command-line checks:
 
 The app has not been launched from this public copy yet. The Claude Code and Codex end-to-end checks, live permissions, screenshots, and real app actions still need a separate approved run. Do not describe either brain as verified until it passes that run.
 
-The standalone arm64 build succeeded in Swift 5 language mode. The compiler still reports async-locking warnings in the brain and Whisper code, plus a deprecation warning for the Keychain interaction API. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. If another Jev Voice copy is installed, choose a distinct bundle identifier before opening this one.
+The standalone arm64 build succeeded in Swift 5 language mode with no compiler warnings on the local toolchain. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. If another Jev Voice copy is installed, choose a distinct bundle identifier before opening this one.
 
 ## Diagnostics
 

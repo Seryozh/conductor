@@ -37,7 +37,7 @@ final class LocalWhisper: @unchecked Sendable {
             task.standardOutput = FileHandle.nullDevice; task.standardError = FileHandle.nullDevice
             do {
                 try task.run()
-                self.lock.lock(); self.process = task; self.lock.unlock()
+                self.lock.withLock { self.process = task }
                 DebugLog.write("WHISPER: server started, pid \(task.processIdentifier)")
             } catch { DebugLog.write("WHISPER: could not start the server: \(error.localizedDescription)") }
         }

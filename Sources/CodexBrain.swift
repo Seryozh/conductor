@@ -60,11 +60,13 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
     func plan(_ message: String, image: Data?, timeout: TimeInterval) async throws -> BrainReply {
         guard let binary = Self.binary() else { throw VoiceError.message("Codex CLI was not found. Install it, sign in, or choose its executable in Settings.") }
         let wanted = choice
-        lock.lock()
-        if threadModel != wanted.model { thread = nil; threadModel = wanted.model; turns = 0; fixedTokens = 0 }
-        let resume = thread
-        let note = resetNote; resetNote = nil
-        lock.unlock()
+        let (resume, note) = lock.withLock { () -> (String?, String?) in
+            if threadModel != wanted.model { thread = nil; threadModel = wanted.model; turns = 0; fixedTokens = 0 }
+            let resume = thread
+            let note = resetNote
+            resetNote = nil
+            return (resume, note)
+        }
         var text = message
         if let note { text = note + "\n\n" + text }
         text += "\n\n(Reply with the one JSON object only.)"
@@ -82,18 +84,18 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         args += ["--", text]
 
         let outcome = try await run(binary, args, timeout: timeout)
-        lock.lock()
-        if resume == nil, let started = outcome.thread { thread = started }
-        turns += 1
-        var usage = BrainUsage()
-        usage.inputTokens = outcome.input; usage.outputTokens = outcome.output
-        usage.contextUsed = outcome.input / max(1, outcome.tools.count + 1)   // roughly the last model call
-        usage.contextWindow = 272_000
-        usage.model = wanted.model
-        usage.sevenDay = Self.weekUsed(thread: thread)
-        lastUsage = usage
-        if fixedTokens == 0 { fixedTokens = max(0, usage.contextUsed - 2500) }
-        lock.unlock()
+        lock.withLock {
+            if resume == nil, let started = outcome.thread { thread = started }
+            turns += 1
+            var usage = BrainUsage()
+            usage.inputTokens = outcome.input; usage.outputTokens = outcome.output
+            usage.contextUsed = outcome.input / max(1, outcome.tools.count + 1)   // roughly the last model call
+            usage.contextWindow = 272_000
+            usage.model = wanted.model
+            usage.sevenDay = Self.weekUsed(thread: thread)
+            lastUsage = usage
+            if fixedTokens == 0 { fixedTokens = max(0, usage.contextUsed - 2500) }
+        }
         var reply = try ClaudeBrain.parse(outcome.answer)
         reply.toolActions = outcome.tools   // work the brain did itself is not "said but not done"
         return reply
@@ -154,9 +156,14 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
             }
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { if task.isRunning { fail("Codex did not respond within \(Int(timeout)) seconds."); task.terminate() } }
         }
-        lock.lock(); running = nil; lock.unlock()
-        _ = readerDone.wait(timeout: .now() + 3)
-        parseLock.lock(); let result = outcome, problem = failure; parseLock.unlock()
+        lock.withLock { running = nil }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global().async {
+                _ = readerDone.wait(timeout: .now() + 3)
+                continuation.resume()
+            }
+        }
+        let (result, problem) = parseLock.withLock { (outcome, failure) }
         if task.terminationReason == .uncaughtSignal, problem == nil { throw CancellationError() }
         if let problem, result.answer.isEmpty { throw VoiceError.message("Codex: " + problem) }
         guard !result.answer.isEmpty else { throw VoiceError.message("Codex returned no answer.") }
