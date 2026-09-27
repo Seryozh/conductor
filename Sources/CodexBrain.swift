@@ -1,6 +1,6 @@
 import Foundation
 
-/// GPT models (GPT-6 Astra, GPT-6 Luna) as Jev Voice's brain, through the Codex CLI on the user's
+/// GPT models (GPT-6 Astra, GPT-6 Luna) as Conductor's brain, through the Codex CLI on the user's
 /// ChatGPT plan. Same instruction, answer contract and
 /// full access to the Mac as ClaudeBrain (ClaudeBrain.prompt, ClaudeBrain.parse, no sandbox).
 /// Each command is one `codex exec` run; later commands resume the same Codex thread, so the

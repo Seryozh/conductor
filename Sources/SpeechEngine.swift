@@ -72,7 +72,7 @@ final class SpeechEngine {
     private var consecutiveErrors = 0
     /// Useful common names and command phrases are added before installed app names.
     static var vocabulary: [String] {
-        ["Claude", "Claude Code", "Codex", "Opus", "Sonnet", "Jev", "Jev Voice", "ChatGPT", "Chrome", "Google Chrome",
+        ["Claude", "Claude Code", "Codex", "Opus", "Sonnet", "Jev", "Conductor", "ChatGPT", "Chrome", "Google Chrome",
          "Safari", "Finder", "Notes", "Calendar", "Messages", "GitHub", "YouTube", "TypeSafe",
          "end command", "cancel task", "stop listening"] + VoiceLocalization.words("speech.vocabulary")
     }

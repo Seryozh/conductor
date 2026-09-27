@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleExecutable</key><string>JevVoice</string>
-<key>CFBundleIdentifier</key><string>ai.jevvoice.public</string>
-<key>CFBundleName</key><string>Jev Voice</string>
-<key>CFBundleDisplayName</key><string>Jev Voice</string>
+<key>CFBundleExecutable</key><string>Conductor</string>
+<key>CFBundleIdentifier</key><string>ai.conductor.public</string>
+<key>CFBundleName</key><string>Conductor</string>
+<key>CFBundleDisplayName</key><string>Conductor</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSUIElement</key><true/>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
-<key>NSAppleEventsUsageDescription</key><string>Jev Voice uses Apple Events to control apps when you ask it to.</string>
-<key>NSMicrophoneUsageDescription</key><string>Jev Voice listens while voice control is active.</string>
-<key>NSSpeechRecognitionUsageDescription</key><string>Jev Voice transcribes voice commands on your Mac.</string>
+<key>NSAppleEventsUsageDescription</key><string>Conductor uses Apple Events to control apps when you ask it to.</string>
+<key>NSMicrophoneUsageDescription</key><string>Conductor listens while voice control is active.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>Conductor transcribes voice commands on your Mac.</string>
 </dict></plist>

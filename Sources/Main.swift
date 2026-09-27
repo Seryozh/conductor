@@ -22,14 +22,14 @@ final class CommandBarPanel: NSPanel {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 690, height: 650), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = NSLocalizedString("Jev Settings", comment: "Settings window title")
+        window.title = NSLocalizedString("Conductor Settings", comment: "Settings window title")
         window.titlebarAppearsTransparent = true
         window.backgroundColor = NSColor(Palette.background)
         window.contentView = NSHostingView(rootView: SettingsView(model: model))
         window.isReleasedWhenClosed = false
         window.center()
         overlay = CommandBarPanel(contentRect: NSRect(x: 0, y: 0, width: CommandBarView.width, height: 60), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        overlay.title = NSLocalizedString("Jev command bar", comment: "Command bar window title")
+        overlay.title = NSLocalizedString("Conductor command bar", comment: "Command bar window title")
         overlay.isOpaque = false; overlay.backgroundColor = .clear; overlay.hasShadow = true
         overlay.level = .floating; overlay.hidesOnDeactivate = false
         overlay.isFloatingPanel = true; overlay.becomesKeyOnlyIfNeeded = true
@@ -40,7 +40,7 @@ final class CommandBarPanel: NSPanel {
             openSettings: { [weak self] in self?.showSettings() },
             releaseKeyboard: { [weak self] in self?.releaseBarKeyboard() }))
         answer = CommandBarPanel(contentRect: NSRect(x: 0, y: 0, width: 488, height: 120), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        answer.title = NSLocalizedString("Jev answer", comment: "Answer window title")
+        answer.title = NSLocalizedString("Conductor answer", comment: "Answer window title")
         answer.isOpaque = false; answer.backgroundColor = .clear; answer.hasShadow = true
         answer.level = .floating; answer.hidesOnDeactivate = false
         answer.isFloatingPanel = true; answer.becomesKeyOnlyIfNeeded = true
@@ -84,13 +84,13 @@ final class CommandBarPanel: NSPanel {
         holdToTalk.onDown = { [weak self] in self?.model.pushToTalkDown() }
         holdToTalk.onUp = { [weak self] in self?.model.pushToTalkUp() }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: NSLocalizedString("Jev Voice", comment: "Menu bar icon"))
+        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: NSLocalizedString("Conductor", comment: "Menu bar icon"))
         let menu = NSMenu()
         menu.delegate = self   // rebuilt on every open, so the checkmarks are current
         statusItem.menu = menu
         let mainMenu = NSMenu()
         let appMenu = NSMenu(); let appItem = NSMenuItem(); appItem.submenu = appMenu
-        appMenu.addItem(withTitle: NSLocalizedString("Quit Jev Voice", comment: "Quit menu item"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: NSLocalizedString("Quit Conductor", comment: "Quit menu item"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         mainMenu.addItem(appItem)
         let edit = NSMenu(title: NSLocalizedString("Edit", comment: "Edit menu"))
         for (title, selector, key) in [("Undo", Selector(("undo:")), "z"), ("Cut", #selector(NSText.cut(_:)), "x"), ("Copy", #selector(NSText.copy(_:)), "c"), ("Paste", #selector(NSText.paste(_:)), "v"), ("Select All", #selector(NSText.selectAll(_:)), "a")] { edit.addItem(withTitle: NSLocalizedString(title, comment: "Edit menu item"), action: selector, keyEquivalent: key) }
@@ -103,8 +103,8 @@ final class CommandBarPanel: NSPanel {
         Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.statusItem.button?.image = NSImage(systemSymbolName: self.model.voiceState.icon, accessibilityDescription: NSLocalizedString("Jev Voice", comment: "Menu bar icon") + ": " + self.model.voiceState.rawValue)
-                self.statusItem.button?.toolTip = "Jev Voice · " + self.model.phase + " · " + self.model.detail
+                self.statusItem.button?.image = NSImage(systemSymbolName: self.model.voiceState.icon, accessibilityDescription: NSLocalizedString("Conductor", comment: "Menu bar icon") + ": " + self.model.voiceState.rawValue)
+                self.statusItem.button?.toolTip = "Conductor · " + self.model.phase + " · " + self.model.detail
             }
         }
     }
@@ -133,7 +133,7 @@ final class CommandBarPanel: NSPanel {
         add("Listen for one command (⌥ Space), or hold Fn", #selector(listen))
         menu.addItem(.separator())
         add("Hide command bar", #selector(hideCommandBar))
-        add("Quit Jev Voice", #selector(quit), key: "q")
+        add("Quit Conductor", #selector(quit), key: "q")
     }
     @objc func pickBrain(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, let choice = BrainChoice.find(id) else { return }
@@ -163,7 +163,7 @@ final class CommandBarPanel: NSPanel {
         if practice == nil {
             let view = PracticeView(model: model)
             practice = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 535, height: 465), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            practice?.title = NSLocalizedString("Jev Voice · Practice", comment: "Practice window title")
+            practice?.title = NSLocalizedString("Conductor · Practice", comment: "Practice window title")
             practice?.contentView = NSHostingView(rootView: view)
             practice?.isReleasedWhenClosed = false; practice?.delegate = self; practice?.center()
         }
@@ -203,7 +203,7 @@ final class CommandBarPanel: NSPanel {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showCommandCenter(); return false }
 }
 
-@main struct JevVoiceApp {
+@main struct ConductorApp {
     @MainActor static func main() {
         if let flag = CommandLine.arguments.firstIndex(of: "--speech-file-test"), CommandLine.arguments.count > flag + 1 {
             _ = NSApplication.shared

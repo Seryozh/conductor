@@ -18,7 +18,7 @@ enum JevProvider: Equatable {
 }
 
 enum KeyStore {
-    static var service: String { "ai.jev.voice.public.\(Bundle.main.bundleIdentifier ?? "app")" }
+    static var service: String { "ai.conductor.public.\(Bundle.main.bundleIdentifier ?? "app")" }
     static func read() -> String? {
         // Never block application startup behind an OS Keychain dialog.
         let context = LAContext()

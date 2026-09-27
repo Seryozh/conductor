@@ -82,7 +82,7 @@ struct LiteralTokens {
         ranges.enumerated().map { i, range in
             let before = source[source.startIndex..<range.lowerBound].suffix(55)
             let after = source[range.upperBound...].prefix(55)
-            return ChoiceOption(id: "token_\(i)", description: "Token \(i): [\(source[range])] — surrounding text: \(before)⟦\(source[range])⟧\(after)")
+            return ChoiceOption(id: "token_\(i)", description: "Token \(i): [\(source[range])] (surrounding text: \(before)⟦\(source[range])⟧\(after))")
         }
     }
     func extract(first: Int, last: Int) throws -> String {

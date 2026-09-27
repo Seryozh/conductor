@@ -1,36 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
-  <title id="title">Jev Voice architecture</title>
+  <title id="title">Conductor architecture</title>
   <desc id="desc">Voice is transcribed on the Mac, Claude Code or Codex works as the full-access reasoning brain, TypeSafe Jev selects among discovered interface actions, and a native Swift controller performs and checks the action. macOS privacy permissions still apply.</desc>
   <defs>
-    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1424"/><stop offset="1" stop-color="#101d2b"/></linearGradient>
-    <linearGradient id="mint" x2="1"><stop stop-color="#62dbc0"/><stop offset="1" stop-color="#a2f0cf"/></linearGradient>
-    <linearGradient id="coral" x2="1"><stop stop-color="#f28b7e"/><stop offset="1" stop-color="#ffbd92"/></linearGradient>
-    <marker id="arrow-mint" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3z" fill="#75e0c4"/></marker>
-    <marker id="arrow-coral" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3z" fill="#f29b88"/></marker>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101012"/><stop offset="1" stop-color="#1a1917"/></linearGradient>
+    <linearGradient id="amber" x2="1"><stop stop-color="#f4a900"/><stop offset="1" stop-color="#ffd36a"/></linearGradient>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3z" fill="#f7b733"/></marker>
     <style>
-      .title{font:700 32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#f4f7fa}
-      .sub{font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#9eacbb}
-      .head{font:700 18px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#f4f7fa}
-      .body{font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#bdc8d3}
-      .small{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#9eacbb}
+      .title{font:700 32px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#fffaf0}
+      .sub{font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#c7c0b2}
+      .head{font:700 18px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#fffaf0}
+      .body{font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#ded8cc}
+      .small{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#b0a99c}
       .chip{font:700 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:1px}
-      .card{fill:#111f30;stroke:#2c4054;stroke-width:1.5}
-      .flow{fill:none;stroke:#75e0c4;stroke-width:2.5;marker-end:url(#arrow-mint)}
-      .flow-coral{fill:none;stroke:#f29b88;stroke-width:2.5;marker-end:url(#arrow-coral)}
+      .card{fill:#1a1917;stroke:#39342a;stroke-width:1.5}
+      .flow{fill:none;stroke:#f7b733;stroke-width:2.5;marker-end:url(#arrow-amber)}
     </style>
   </defs>
   <rect width="1280" height="720" rx="24" fill="url(#bg)"/>
-  <text x="64" y="72" class="title">One request, a CLI brain and a live action picker</text>
-  <text x="64" y="102" class="sub">Local speech and macOS control, a CLI reasoning brain, and Jev's live action picker.</text>
+  <text x="64" y="72" class="title">How Conductor moves a request through macOS</text>
+  <text x="64" y="102" class="sub">Local speech, a full-access CLI brain, TypeSafe Jev, and native Mac controls.</text>
 
   <rect x="64" y="170" width="222" height="154" rx="18" class="card"/>
-  <text x="88" y="208" class="chip" fill="#76e0c4">INPUT</text>
+  <text x="88" y="208" class="chip" fill="#f7b733">VOICE INPUT</text>
   <text x="88" y="242" class="head">You speak or type</text>
   <text x="88" y="274" class="body">Apple Speech on device</text>
   <text x="88" y="298" class="body">Optional local Whisper</text>
 
   <rect x="344" y="142" width="326" height="208" rx="18" class="card"/>
-  <text x="370" y="180" class="chip" fill="#76e0c4">REASONING BRAIN</text>
+  <text x="370" y="180" class="chip" fill="#f7b733">REASONING BRAIN</text>
   <text x="370" y="214" class="head">Claude Code or Codex CLI</text>
   <text x="370" y="246" class="body">Your logged-in account and model</text>
   <text x="370" y="274" class="body">Can use shell, files, web and app tools</text>
@@ -38,7 +35,7 @@
   <text x="370" y="330" class="small">Stop button or “cancel task” interrupts a run</text>
 
   <rect x="732" y="142" width="242" height="208" rx="18" class="card"/>
-  <text x="758" y="180" class="chip" fill="#f29b88">ACTION PICKER</text>
+  <text x="758" y="180" class="chip" fill="#f7b733">ACTION PICKER</text>
   <text x="758" y="214" class="head">TypeSafe Jev</text>
   <text x="758" y="246" class="body">Gets request, screen text and choices</text>
   <text x="758" y="266" class="body">plus action history</text>
@@ -47,23 +44,23 @@
   <text x="758" y="342" class="small">Requires a separate TypeSafe API key</text>
 
   <rect x="1036" y="170" width="180" height="154" rx="18" class="card"/>
-  <text x="1060" y="208" class="chip" fill="#76e0c4">MAC</text>
+  <text x="1060" y="208" class="chip" fill="#f7b733">MACOS</text>
   <text x="1060" y="242" class="head">Swift controller</text>
   <text x="1060" y="274" class="body">Accessibility</text>
   <text x="1060" y="298" class="body">Apple Events</text>
   <text x="1060" y="322" class="body">Keyboard and pointer</text>
 
   <path d="M286 247H334" class="flow"/>
-  <path d="M670 247H722" class="flow-coral"/>
   <path d="M974 247H1026" class="flow"/>
+  <path d="M670 247H722" class="flow"/>
 
   <path d="M1126 346v76H856v-62" class="flow"/>
   <text x="906" y="414" class="small">Observe the result, then choose again</text>
   <path d="M732 300H680v122H507v-62" class="flow"/>
   <text x="472" y="414" class="small">Updated screen context and action history</text>
 
-  <rect x="64" y="496" width="1152" height="148" rx="18" fill="#181d2a" stroke="#6f4a49" stroke-width="1.5"/>
-  <text x="92" y="536" class="chip" fill="#f5a18d">FULL ACCESS, WITH MACOS PRIVACY GRANTS</text>
-  <text x="92" y="572" class="body">The CLI brain can read and write files, run commands, and control apps without per-step approval in Jev Voice.</text>
-  <text x="92" y="602" class="body">Microphone, Speech Recognition, Accessibility, Screen Recording and Automation permissions still apply.</text>
+  <rect x="64" y="496" width="1152" height="148" rx="18" fill="#201c14" stroke="#8f641b" stroke-width="1.5"/>
+  <text x="92" y="536" class="chip" fill="#f7b733">FULL ACCESS, WITH MACOS PRIVACY GRANTS</text>
+  <text x="92" y="572" class="body">The CLI can read and change files, run commands, and control apps without approval before each step.</text>
+  <text x="92" y="602" class="body">Stop with the button or “cancel task.” Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation grants still apply.</text>
 </svg>

@@ -3,10 +3,10 @@
 The build script creates an unsigned Apple silicon app by default:
 
 ```sh
-JEV_OUTPUT_DIR=/tmp/jev-voice-build bash build.sh
+CONDUCTOR_OUTPUT_DIR=/tmp/conductor-build bash build.sh
 ```
 
-The `v*` tag workflow builds the same app on an Apple silicon macOS runner and uploads `Jev Voice-macos-arm64.zip` as a workflow artifact. It does not create a GitHub Release, publish a repository, or notarize the app.
+The `v*` tag workflow builds the same app on an Apple silicon macOS runner and uploads `Conductor-macos-arm64.zip` as a workflow artifact. It does not create a GitHub Release, publish a repository, or notarize the app.
 
 ## Notarization
 

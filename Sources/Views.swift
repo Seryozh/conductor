@@ -25,7 +25,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Image(systemName: "waveform").foregroundStyle(Palette.accent)
-                    Text("Jev Voice").font(.system(size: 24, weight: .semibold))
+                    Text("Conductor").font(.system(size: 24, weight: .semibold))
                     Spacer()
                     Button("Back to command bar") { model.showCommandBar?() }
                 }
@@ -64,7 +64,7 @@ struct SettingsView: View {
                     Spacer()
                     Toggle("Plan before acting", isOn: $model.brainEnabled).toggleStyle(.switch).controlSize(.small).font(.system(size: 12))
                 }
-                Text("Claude Code and Codex can each run Jev Voice's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use.")
+                Text("Claude Code and Codex can each run Conductor's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 ForEach(BrainChoice.all) { choice in brainRow(choice) }
                 Divider()
@@ -103,7 +103,7 @@ struct SettingsView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 Label("CLI and local speech paths", systemImage: "terminal").font(.system(size: 16, weight: .semibold))
-                Text("Leave a field blank to let Jev Voice search its usual install locations. Paths are saved in this Mac's app settings.")
+                Text("Leave a field blank to let Conductor search its usual install locations. Paths are saved in this Mac's app settings.")
                     .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 TextField("Claude Code executable path", text: $claudeCLIPath).textFieldStyle(.roundedBorder)
                 TextField("Codex executable path", text: $codexCLIPath).textFieldStyle(.roundedBorder)
@@ -154,7 +154,7 @@ struct SettingsView: View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Jev action selector", systemImage: "key.fill").font(.system(size: 16, weight: .semibold))
-                Text(model.keyConfigured ? "Your TypeSafe API key is stored in macOS Keychain." : "Add a TypeSafe API key. Jev Voice stores it only in macOS Keychain.")
+                Text(model.keyConfigured ? "Your TypeSafe API key is stored in macOS Keychain." : "Add a TypeSafe API key. Conductor stores it only in macOS Keychain.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted)
                 if model.keyConfigured {
                     DisclosureGroup("Replace API key") { keyEntry.padding(.top, 8) }.font(.system(size: 12))
@@ -179,7 +179,7 @@ struct SettingsView: View {
                 permissionRow("Accessibility", description: "Reads available controls and performs UI actions.", enabled: model.accessibilityGranted) { model.requestAccessibility() }
                 Divider()
                 permissionRow("Screen Recording", description: "Lets the brain inspect a screenshot when a visual request needs it.", enabled: model.screenCaptureGranted) { model.requestScreenCapture() }
-                Text("macOS may also prompt for Automation access when Jev Voice first controls an app. Grant access in System Settings to enable that app.")
+                Text("macOS may also prompt for Automation access when Conductor first controls an app. Grant access in System Settings to enable that app.")
                     .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -189,7 +189,7 @@ struct SettingsView: View {
         Card {
             VStack(alignment: .leading, spacing: 9) {
                 Text("Full access and privacy").font(.system(size: 14, weight: .medium))
-                Text("The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Jev Voice. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app.")
+                Text("The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Conductor. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 Text("Voice audio is transcribed on this Mac. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
@@ -353,7 +353,7 @@ struct PracticeView: View {
     @State private var text = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            Text("A place to try things.").font(.system(size: 26, weight: .medium, design: .rounded))
+            Text("Practice voice commands").font(.system(size: 26, weight: .medium, design: .rounded))
             Text("Turn the mic on once and say “click Blue”.\nPause, then say “type hello world”.").font(.system(size: 13)).foregroundStyle(Palette.muted)
             RoundedRectangle(cornerRadius: 20).fill(color).frame(height: 100).overlay(Text(result).font(.system(size: 18, weight: .medium)).foregroundStyle(.black)).accessibilityLabel(result)
             HStack(spacing: 12) {

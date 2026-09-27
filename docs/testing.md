@@ -19,7 +19,7 @@ The app includes these command-line checks:
 
 The app has not been launched from this public copy yet. The Claude Code and Codex end-to-end checks, live permissions, screenshots, and real app actions still need a separate approved run. Do not describe either brain as verified until it passes that run.
 
-The standalone arm64 build succeeded in Swift 5 language mode with no compiler warnings on the local toolchain. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. If another Jev Voice copy is installed, choose a distinct bundle identifier before opening this one.
+The source compiled in Swift 5 language mode for arm64 with no compiler warnings. The scratch app used bundle ID `ai.conductor.public.preview`, included the Conductor app icon, and was not opened. This verifies compilation only, not runtime behavior. Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. Use a bundle identifier distinct from any other Conductor copy before opening this one.
 
 ## Diagnostics
 

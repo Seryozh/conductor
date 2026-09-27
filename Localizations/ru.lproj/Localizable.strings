@@ -18,17 +18,17 @@
 "speech.vocabulary" = "джев|голосовой джев|кодекс|чатджипити|хром|гугл хром|сафари|финдер|заметки|календарь|сообщения|калькулятор|ютуб|типсейф|конец команды|отмени задачу|прекрати слушать|отправляй|опус|сонет|астра|луна";
 "apps.aliases" = "хром=google chrome|гугл хром=google chrome|сафари=safari|финдер=finder|заметки=notes|календарь=calendar|сообщения=messages|калькулятор=calculator|ютуб=youtube|клод=claude|кодекс=codex";
 
-"Jev Settings" = "Настройки Jev";
-"Jev command bar" = "Панель команд Jev";
-"Jev answer" = "Ответ Jev";
-"Jev Voice · Practice" = "Jev Voice · Практика";
+"Conductor Settings" = "Настройки Conductor";
+"Conductor command bar" = "Панель команд Conductor";
+"Conductor answer" = "Ответ Conductor";
+"Conductor · Practice" = "Conductor · Практика";
 "Edit" = "Правка";
 "Undo" = "Отменить";
 "Cut" = "Вырезать";
 "Copy" = "Скопировать";
 "Paste" = "Вставить";
 "Select All" = "Выбрать всё";
-"Quit Jev Voice" = "Завершить Jev Voice";
+"Quit Conductor" = "Завершить Conductor";
 "Listen for one command (⌥ Space), or hold Fn" = "Прослушать одну команду (⌥ Пробел) или удерживать Fn";
 "Hide command bar" = "Скрыть панель команд";
 "Speak answers" = "Произносить ответы";
@@ -40,10 +40,10 @@
 "Jev activity" = "Действия Jev";
 "Brain" = "Мозг";
 "Plan before acting" = "Сначала составлять план";
-"Claude Code and Codex can each run Jev Voice's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use." = "Claude Code и Codex могут выполнять роль рассуждающего ядра Jev Voice. Claude использует ваш вход в Claude Code и совместимую подписку. Codex использует ваш вход в ChatGPT. Выберите модель.";
+"Claude Code and Codex can each run Conductor's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use." = "Claude Code и Codex могут выполнять роль рассуждающего ядра Conductor. Claude использует ваш вход в Claude Code и совместимую подписку. Codex использует ваш вход в ChatGPT. Выберите модель.";
 "Start new conversation" = "Начать новый разговор";
 "CLI and local speech paths" = "Пути к CLI и локальной речи";
-"Leave a field blank to let Jev Voice search its usual install locations. Paths are saved in this Mac's app settings." = "Оставьте поле пустым, чтобы Jev Voice искал программу в стандартных папках. Пути сохраняются в настройках приложения на этом Mac.";
+"Leave a field blank to let Conductor search its usual install locations. Paths are saved in this Mac's app settings." = "Оставьте поле пустым, чтобы Conductor искал программу в стандартных папках. Пути сохраняются в настройках приложения на этом Mac.";
 "Claude Code executable path" = "Путь к программе Claude Code";
 "Codex executable path" = "Путь к программе Codex";
 "Use local Whisper for final transcription" = "Использовать локальный Whisper для итоговой расшифровки";
@@ -64,7 +64,7 @@
 "Say ‘cancel task’ or click Stop to interrupt a running task. Say ‘stop listening’ to turn off the microphone. Say ‘start over’ to clear the brain's conversation context." = "Скажите «отмени задачу» или нажмите «Стоп», чтобы прервать выполняемую задачу. Скажите «прекрати слушать», чтобы выключить микрофон. Скажите «начни сначала», чтобы очистить контекст разговора.";
 "Jev action selector" = "Выбор действий Jev";
 "Your TypeSafe API key is stored in macOS Keychain." = "Ваш ключ TypeSafe хранится в Связке ключей macOS.";
-"Add a TypeSafe API key. Jev Voice stores it only in macOS Keychain." = "Добавьте ключ TypeSafe API. Jev Voice хранит его только в Связке ключей macOS.";
+"Add a TypeSafe API key. Conductor stores it only in macOS Keychain." = "Добавьте ключ TypeSafe API. Conductor хранит его только в Связке ключей macOS.";
 "Replace API key" = "Заменить ключ API";
 "Checking…" = "Проверка…";
 "Check connection" = "Проверить соединение";
@@ -75,9 +75,9 @@
 "Reads available controls and performs UI actions." = "Читает доступные элементы управления и выполняет действия в интерфейсе.";
 "Screen Recording" = "Запись экрана";
 "Lets the brain inspect a screenshot when a visual request needs it." = "Позволяет ядру просмотреть снимок экрана, если этого требует запрос.";
-"macOS may also prompt for Automation access when Jev Voice first controls an app. Grant access in System Settings to enable that app." = "При первом управлении приложением macOS может запросить разрешение на автоматизацию. Разрешите доступ в Системных настройках.";
+"macOS may also prompt for Automation access when Conductor first controls an app. Grant access in System Settings to enable that app." = "При первом управлении приложением macOS может запросить разрешение на автоматизацию. Разрешите доступ в Системных настройках.";
 "Full access and privacy" = "Полный доступ и конфиденциальность";
-"The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Jev Voice. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app." = "Выбранный Claude Code или Codex CLI работает без проверок подтверждения и изоляции. Он может запускать команды, читать и изменять файлы, использовать AppleScript и JXA, управлять приложениями, клавиатурой и указателем без подтверждения каждого шага в Jev Voice. Остановите его кнопкой «Стоп» или словами «отмени задачу». Разрешения конфиденциальности macOS по-прежнему действуют и не могут быть обойдены приложением.";
+"The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Conductor. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app." = "Выбранный Claude Code или Codex CLI работает без проверок подтверждения и изоляции. Он может запускать команды, читать и изменять файлы, использовать AppleScript и JXA, управлять приложениями, клавиатурой и указателем без подтверждения каждого шага в Conductor. Остановите его кнопкой «Стоп» или словами «отмени задачу». Разрешения конфиденциальности macOS по-прежнему действуют и не могут быть обойдены приложением.";
 "Voice audio is transcribed on this Mac. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request." = "Голос расшифровывается на этом Mac. Выбранный провайдер ядра получает запрос, текст на экране и снимки экрана, когда они нужны. TypeSafe получает ваш запрос, текст на экране, доступные варианты и историю действий, но не аудио и не снимки экрана. Защищённые поля исключены, однако ядро CLI с полным доступом может читать локальные файлы и данные приложений для выполнения запроса.";
 "Write diagnostic logs (may include screen text and commands)" = "Сохранять диагностические журналы (в них могут быть текст с экрана и команды)";
 "TypeSafe API key" = "Ключ TypeSafe API";
@@ -97,7 +97,7 @@
 "Run command · Return" = "Выполнить команду · Return";
 "Stop task" = "Остановить задачу";
 "Open Settings" = "Открыть настройки";
-"A place to try things." = "Место для проб.";
+"Practice voice commands" = "Практика голосовых команд";
 "Turn the mic on once and say “click Blue”.\nPause, then say “type hello world”." = "Включите микрофон и скажите «нажми Синий».\nЗатем скажите «введи привет, мир».";
 "Blue" = "Синий";
 "Coral" = "Коралловый";

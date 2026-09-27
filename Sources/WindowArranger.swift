@@ -4,7 +4,7 @@ import ApplicationServices
 /// Arrange app windows on the selected display.
 /// Each placement names an app, optionally part of a window title, and a rectangle in
 /// fractions of the screen's visible area (menu bar and Dock excluded). Uses the
-/// Accessibility permission Jev Voice already has; no new macOS permission is needed.
+/// Accessibility permission Conductor already has; no new macOS permission is needed.
 struct WindowPlacement {
     let app: String
     let title: String?

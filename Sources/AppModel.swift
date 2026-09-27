@@ -3,7 +3,7 @@ import Combine
 import SwiftUI
 import ApplicationServices
 
-/// What Jev Voice is doing, shown on the bar with one icon, colour and label (2026-09-27).
+/// What Conductor is doing, shown on the bar with one icon, colour and label (2026-09-27).
 /// Only `listening` means the microphone is taking a command.
 enum VoiceState: String { case ready, listening, recognizing, thinking, acting, checking, attention }
 
@@ -17,7 +17,7 @@ struct CommandRecord: Identifiable {
 
 @MainActor final class AppModel: ObservableObject {
     @Published var phase = "Ready"
-    @Published var detail = "Your voice. A complete request. The right sequence."
+    @Published var detail = "Ready for a command"
     @Published var transcript = ""
     @Published var liveTranscript = ""
     @Published var typedCommand = ""
@@ -236,7 +236,7 @@ struct CommandRecord: Identifiable {
     private func brainSwitched(from old: String) {
         brain.stop(); codexBrain.stop(); brainTurns = 0; contextUsed = 0
         let time = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
-        activeBrain.resetNote = "The user switched Jev Voice from \(BrainChoice.find(old)?.name ?? old) to \(brainChoice.name) at \(time). This is a new conversation."
+        activeBrain.resetNote = "The user switched Conductor from \(BrainChoice.find(old)?.name ?? old) to \(brainChoice.name) at \(time). This is a new conversation."
         contextLine = "New \(brainChoice.name) conversation started at \(time)"
         DebugLog.write("BRAIN MODEL: \(old) → \(brainModel) (\(brainChoice.model))")
         if brainEnabled && !busy { activeBrain.warm() }
@@ -282,7 +282,7 @@ struct CommandRecord: Identifiable {
     }
     /// Current app settings supplied to the brain with each request.
     private var settingsLine: String {
-        "Jev Voice settings: model \(brainChoice.name); spoken answers \(voiceFeedback ? "on" : "off"); continuous listening \(continuousListening ? "on" : "off"); Whisper \(whisperEnabled && LocalWhisper.shared.installed ? "on" : "off"); speech language \(speechLanguage)."
+        "Conductor settings: model \(brainChoice.name); spoken answers \(voiceFeedback ? "on" : "off"); continuous listening \(continuousListening ? "on" : "off"); Whisper \(whisperEnabled && LocalWhisper.shared.installed ? "on" : "off"); speech language \(speechLanguage)."
     }
     @Published var brainEnabled = UserDefaults.standard.object(forKey: "brainEnabled") as? Bool ?? true {
         didSet { UserDefaults.standard.set(brainEnabled, forKey: "brainEnabled") }
@@ -636,7 +636,7 @@ struct CommandRecord: Identifiable {
         guard !busy, !checkingConnection else { return }
         guard let key = cachedKey ?? KeyStore.read() else { keyConfigured = false; showSetup = true; showMain?(); detail = "The saved API key is unavailable. Unlock your Mac Keychain or save a key in Settings."; return }
         cachedKey = key
-        guard AXIsProcessTrusted() else { detail = "Enable Jev Voice in macOS Accessibility to control apps."; showSetup = true; showMain?(); return }
+        guard AXIsProcessTrusted() else { detail = "Enable Conductor in macOS Accessibility to control apps."; showSetup = true; showMain?(); return }
         guard command.count <= 4000 else { fail("Keep each request under 4,000 characters."); return }
         generation += 1
         let token = generation

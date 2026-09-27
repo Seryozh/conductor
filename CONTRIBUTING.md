@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for looking at Jev Voice.
+Thanks for looking at Conductor.
 
 ## Build locally
 
@@ -8,8 +8,8 @@ Install Xcode Command Line Tools, then run:
 
 ```sh
 bash build.sh
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --self-test
-'dist/Jev Voice.app/Contents/MacOS/JevVoice' --activity-test
+'dist/Conductor.app/Contents/MacOS/Conductor' --self-test
+'dist/Conductor.app/Contents/MacOS/Conductor' --activity-test
 ```
 
 The two local checks use synthetic state and HTTP fixtures. The router check makes paid TypeSafe API calls. The speech-file check uses a local recording you provide and requests Speech Recognition access. See [checks and diagnostics](docs/testing.md) before running these checks.

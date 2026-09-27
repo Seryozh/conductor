@@ -1,6 +1,6 @@
-# How Jev Voice works
+# How Conductor works
 
-Jev Voice separates reasoning, action selection, and macOS input.
+Conductor separates reasoning, action selection, and macOS input.
 
 ## Request and reasoning
 
@@ -22,7 +22,7 @@ The brain can also act directly through its own CLI tools. The Jev action catalo
 
 ## Access and privacy
 
-The CLI is launched with per-action approval and sandbox checks disabled. Jev Voice does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
+The CLI is launched with per-action approval and sandbox checks disabled. Conductor does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
 
 Voice audio stays on the Mac for transcription. The selected CLI provider receives the request, screen text, and screenshots when needed. TypeSafe receives the request and text context used to choose a UI action. The TypeSafe key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
 

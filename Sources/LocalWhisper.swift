@@ -7,7 +7,7 @@ import Foundation
 final class LocalWhisper: @unchecked Sendable {
     static let shared = LocalWhisper()
     static let port = 8795
-    static let prompt = "Jev Voice, Claude Code, Codex, Chrome, Safari, Finder, YouTube."
+    static let prompt = "Conductor, Claude Code, Codex, Chrome, Safari, Finder, YouTube."
     static var binary: String {
         if let configured = UserDefaults.standard.string(forKey: "whisperServerPath"), !configured.isEmpty { return configured }
         let home = FileManager.default.homeDirectoryForCurrentUser.path
@@ -17,14 +17,14 @@ final class LocalWhisper: @unchecked Sendable {
     static var model: String {
         if let configured = UserDefaults.standard.string(forKey: "whisperModelPath"), !configured.isEmpty { return configured }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return support.appendingPathComponent("JevVoice/Models/ggml-large-v3-turbo-q5_0.bin").path
+        return support.appendingPathComponent("Conductor/Models/ggml-large-v3-turbo-q5_0.bin").path
     }
     var enabled: Bool { UserDefaults.standard.object(forKey: "whisperEnabled") as? Bool ?? false }
     var installed: Bool { FileManager.default.isExecutableFile(atPath: Self.binary) && FileManager.default.fileExists(atPath: Self.model) }
     private let lock = NSLock()
     private var process: Process?
 
-    /// Start the server unless one already answers on the port: a rebuild kills Jev Voice but
+    /// Start the server unless one already answers on the port: a rebuild kills Conductor but
     /// leaves the server running, and the next start reuses it.
     func start() {
         guard enabled, installed else { return }

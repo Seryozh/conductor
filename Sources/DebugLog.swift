@@ -10,11 +10,11 @@ enum DebugLog {
     }()
 
     private static var url: URL {
-        let appName = Bundle.main.bundleIdentifier ?? "JevVoice"
+        let appName = Bundle.main.bundleIdentifier ?? "Conductor"
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return root.appendingPathComponent(appName, isDirectory: true)
             .appendingPathComponent("Logs", isDirectory: true)
-            .appendingPathComponent("JevVoice.log")
+            .appendingPathComponent("Conductor.log")
     }
 
     static func write(_ message: String) {
