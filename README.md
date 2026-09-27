@@ -100,7 +100,7 @@ The **Jev activity** panel keeps up to 300 TypeSafe API call records in memory w
 
 Jev Voice needs a TypeSafe API key. TypeSafe currently charges $0.042 per million input tokens for Jev, with no output-token charge. The amount for a task depends on how much text the action loop sends. Check the [current TypeSafe model page](https://docs.typesafe.ai/models) before use.
 
-The reasoning brain uses the account already signed in to Claude Code or Codex. Those accounts have their own plan limits and terms. Optional local Whisper uses your Mac’s compute and does not use a Whisper API key.
+The reasoning brain runs through the account you sign in with in Claude Code or Codex CLI. With subscription sign-in, it uses your existing Claude or ChatGPT plan. Provider eligibility and usage limits still apply. This setup does not need a separate Anthropic or OpenAI API key, though Jev Voice does need its TypeSafe key. See the current [Claude Code authentication](https://code.claude.com/docs/en/getting-started#authenticate) and [Codex plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan) details. Optional local Whisper uses your Mac’s compute and does not use a Whisper API key.
 
 The downloadable workflow artifact is unsigned. Notarization needs an Apple Developer Program membership, currently $99 USD per year, and a Developer ID certificate. That membership is optional for building locally. The owner has not decided whether to pay for it. [Apple Developer Program](https://developer.apple.com/programs/enroll/) · [Notarization overview](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
 
@@ -124,7 +124,7 @@ No. Apple Speech is the default. Whisper is optional and runs locally.
 
 **Does it work with my Claude or ChatGPT subscription?**
 
-The app launches Claude Code or Codex CLI and uses the account already signed in there. The end-to-end checks for both backends remain open in this draft. Plan eligibility and limits can change, so check the provider’s current CLI documentation.
+The app launches Claude Code or Codex CLI and uses the account you sign in with there. With subscription sign-in, that is your existing Claude or ChatGPT plan. The end-to-end checks for both backends remain open in this draft. Plan eligibility and limits can change, so check the provider’s current CLI documentation.
 
 **Can I redistribute this source?**
 
