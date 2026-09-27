@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
   <title id="title">Conductor architecture</title>
-  <desc id="desc">Apple Speech transcribes voice commands and may use Apple's network service. Optional Whisper runs locally. Claude Code or Codex works as the full-access reasoning brain, TypeSafe Jev selects among discovered interface actions, and a native Swift controller performs and checks the action. macOS privacy permissions still apply.</desc>
+  <desc id="desc">Apple Speech transcribes voice commands and may use Apple's network service. Optional Whisper runs locally. Claude Code or Codex works as the full-access reasoning brain. Jev, called through TypeSafe or OpenRouter, selects among discovered interface actions, and a native Swift controller performs and checks the action. macOS privacy permissions still apply.</desc>
   <defs>
     <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101012"/><stop offset="1" stop-color="#1a1917"/></linearGradient>
     <linearGradient id="amber" x2="1"><stop stop-color="#f4a900"/><stop offset="1" stop-color="#ffd36a"/></linearGradient>
@@ -18,7 +18,7 @@
   </defs>
   <rect width="1280" height="720" rx="24" fill="url(#bg)"/>
   <text x="64" y="72" class="title">How Conductor moves a request through macOS</text>
-  <text x="64" y="102" class="sub">Speech input, a full-access CLI brain, TypeSafe Jev, and native Mac controls.</text>
+  <text x="64" y="102" class="sub">Speech input, your full-access CLI brain, Jev, and native Mac controls.</text>
 
   <rect x="64" y="170" width="222" height="154" rx="18" class="card"/>
   <text x="88" y="208" class="chip" fill="#f7b733">VOICE INPUT</text>
@@ -36,16 +36,16 @@
 
   <rect x="732" y="142" width="242" height="208" rx="18" class="card"/>
   <text x="758" y="180" class="chip" fill="#f7b733">ACTION PICKER</text>
-  <text x="758" y="214" class="head">TypeSafe Jev</text>
-  <text x="758" y="246" class="body">Request and screen text</text>
-  <text x="758" y="266" class="body">Choices and action history</text>
-  <text x="758" y="294" class="body">Chooses one available action</text>
-  <text x="758" y="322" class="body">No image or audio sent to Jev</text>
-  <text x="758" y="342" class="small">Requires a separate TypeSafe API key</text>
+  <text x="758" y="214" class="head">TypeSafe’s Jev</text>
+  <text x="758" y="242" class="body">via TypeSafe or OpenRouter</text>
+  <text x="758" y="270" class="body">Text state and action choices</text>
+  <text x="758" y="298" class="body">One UI action at a time</text>
+  <text x="758" y="322" class="body">No audio or screenshot</text>
+  <text x="758" y="342" class="small">Separate provider API key</text>
 
   <rect x="1036" y="170" width="180" height="154" rx="18" class="card"/>
   <text x="1060" y="208" class="chip" fill="#f7b733">MACOS</text>
-  <text x="1060" y="242" class="head">Swift controller</text>
+  <text x="1060" y="242" class="head" style="font-size:16px">Swift controller</text>
   <text x="1060" y="274" class="body">Accessibility</text>
   <text x="1060" y="298" class="body">Apple Events</text>
   <text x="1060" y="322" class="body">Keyboard, pointer</text>
@@ -53,11 +53,13 @@
   <path d="M286 247H334" class="flow"/>
   <path d="M974 247H1026" class="flow"/>
   <path d="M670 247H722" class="flow"/>
+  <path d="M507 142v-16H1126v34" class="flow"/>
+  <text x="698" y="122" class="small">Direct app, window, session and button actions</text>
 
   <path d="M1126 346v76H856v-62" class="flow"/>
-  <text x="906" y="414" class="small">Observe the result, then choose again</text>
+  <text x="872" y="454" class="small">Observe the result, then choose again</text>
   <path d="M732 300H680v122H507v-62" class="flow"/>
-  <text x="472" y="414" class="small">Updated screen context and action history</text>
+  <text x="430" y="454" class="small">Updated screen context and action history</text>
 
   <rect x="64" y="496" width="1152" height="148" rx="18" fill="#201c14" stroke="#8f641b" stroke-width="1.5"/>
   <text x="92" y="536" class="chip" fill="#f7b733">FULL ACCESS, WITH MACOS PRIVACY GRANTS</text>

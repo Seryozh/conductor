@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 import SwiftUI
 import Darwin
 
@@ -14,6 +15,7 @@ final class CommandBarPanel: NSPanel {
     var overlay: NSPanel!
     var practice: NSWindow?
     var statusItem: NSStatusItem!
+    var localControl: LocalControlServer?
     var hotkey: GlobalHotKey!
     var holdToTalk: HoldToTalkMonitor!
     var barHidden = false
@@ -24,6 +26,14 @@ final class CommandBarPanel: NSPanel {
     var resizingSurface = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        let control = LocalControlServer()
+        do {
+            try control.start(runtime: { [weak self] in self?.model.localRuntimeStatus ?? [:] }, submit: { [weak self] command in
+                self?.model.submitLocalCommand(command) ?? LocalCommandSubmission(state: "rejected", error: "The app is shutting down.")
+            })
+            localControl = control
+            model.localCommandFinished = { [weak control] outcome, error in control?.finish(outcome: outcome, error: error) }
+        } catch { DebugLog.write("LOCAL CONTROL: " + error.localizedDescription) }
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 840, height: 680), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = NSLocalizedString("Conductor Settings", comment: "Settings window title")
         window.minSize = NSSize(width: 760, height: 620)
@@ -122,6 +132,7 @@ final class CommandBarPanel: NSPanel {
         }
         add("Show command bar", #selector(showCommandCenter))
         add("Settings…", #selector(showSettings), key: ",")
+        if model.agentDashboardAvailable { add("Agent dashboard", #selector(openAgentDashboard)) }
         menu.addItem(.separator())
         add("Brain", nil)
         for choice in BrainChoice.all {
@@ -129,6 +140,8 @@ final class CommandBarPanel: NSPanel {
             add(choice.name + "  ·  " + (blocked ? "Codex CLI not found" : choice.short), blocked ? nil : #selector(pickBrain(_:)), state: model.brainModel == choice.id, id: choice.id, indent: true)
         }
         add("Start new conversation", #selector(resetConversation))
+        add("Check a recording…", #selector(checkRecording))
+        add("Run commands from a recording…", #selector(runRecording))
         menu.addItem(.separator())
         add("Speak answers", #selector(toggleVoiceAnswers), state: model.voiceFeedback)
         add("Continuous listening", #selector(toggleContinuous), state: model.continuousListening)
@@ -140,6 +153,16 @@ final class CommandBarPanel: NSPanel {
     @objc func pickBrain(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, let choice = BrainChoice.find(id) else { return }
         model.selectBrain(choice, by: "menu")
+    }
+    @objc func openAgentDashboard() { model.openAgentMap() }
+    @objc func checkRecording() { chooseRecording(execute: false) }
+    @objc func runRecording() { chooseRecording(execute: true) }
+    private func chooseRecording(execute: Bool) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.audio]
+        panel.prompt = NSLocalizedString(execute ? "Run commands" : "Check speech", comment: "Recording picker action")
+        if panel.runModal() == .OK, let source = panel.url { model.replayRecording(source, execute: execute) }
     }
     @objc func resetConversation() { model.newConversation() }
     @objc func toggleVoiceAnswers() { model.voiceFeedback.toggle() }
@@ -216,12 +239,52 @@ final class CommandBarPanel: NSPanel {
         positionCommandSurface()
         overlay.orderFrontRegardless()
     }
+    func applicationWillTerminate(_ notification: Notification) { localControl?.stop() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showCommandCenter(); return false }
 }
 
 @main struct ConductorApp {
     @MainActor static func main() {
+        let arguments = CommandLine.arguments
+        if arguments.contains("--store-key") { exit(LocalControlCLI.storeKey()) }
+        if let flag = arguments.firstIndex(of: "--status") {
+            let id = arguments.count > flag + 1 && !arguments[flag + 1].hasPrefix("--") ? arguments[flag + 1] : nil
+            let (result, code) = LocalControlCLI.status(id: id); LocalControlCLI.printJSON(result); exit(code)
+        }
+        if let flag = arguments.firstIndex(of: "--command") {
+            guard arguments.count > flag + 1 else { LocalControlCLI.printJSON(["state": "rejected", "error": "Usage: --command \"text\" [--id UUID] [--wait seconds]"]); exit(2) }
+            func value(_ name: String) -> String? { guard let n = arguments.firstIndex(of: name), arguments.count > n + 1 else { return nil }; return arguments[n + 1] }
+            let wait = value("--wait").flatMap(Double.init) ?? 0
+            guard wait.isFinite, wait >= 0, wait <= 86400 else { LocalControlCLI.printJSON(["state": "rejected", "error": "Wait must be between 0 and 86400 seconds."]); exit(2) }
+            let (result, code) = LocalControlCLI.command(arguments[flag + 1], id: value("--id") ?? UUID().uuidString, wait: wait)
+            LocalControlCLI.printJSON(result); exit(code)
+        }
+        if let flag = arguments.firstIndex(of: "--ui") {
+            guard arguments.count > flag + 1 else { print("Usage: --ui <app name or bundle ID> [filter]"); exit(2) }
+            _ = NSApplication.shared
+            let result = ScreenTools.list(appName: arguments[flag + 1], filter: arguments.count > flag + 2 ? arguments[(flag + 2)...].joined(separator: " ") : nil)
+            print(result); exit(result.hasPrefix("FAILED") ? 1 : 0)
+        }
+        if let flag = arguments.firstIndex(of: "--press") {
+            guard arguments.count > flag + 2 else { print("Usage: --press <app name or bundle ID> <control name> [match number]"); exit(2) }
+            _ = NSApplication.shared
+            let pick = arguments.count > flag + 3 ? Int(arguments[flag + 3]) : nil
+            if arguments.count > flag + 3 && pick == nil { print("FAILED: Match number must be an integer."); exit(2) }
+            Task { let result = await ScreenTools.press(appName: arguments[flag + 1], name: arguments[flag + 2], pick: pick); print(result); exit(result.hasPrefix("FAILED") || result.hasPrefix("AMBIGUOUS") ? 1 : 0) }
+            RunLoop.main.add(Timer(timeInterval: 60, repeats: true) { _ in }, forMode: .default); CFRunLoopRun(); return
+        }
+        if let flag = arguments.firstIndex(of: "--look-app") {
+            guard arguments.count > flag + 1 else { print("Usage: --look-app <app name or bundle ID> [file]"); exit(2) }
+            _ = NSApplication.shared
+            let path = arguments.count > flag + 2 ? arguments[flag + 2] : FileManager.default.temporaryDirectory.appendingPathComponent("conductor-window.png").path
+            let result = ScreenTools.lookApp(appName: arguments[flag + 1], to: path); print(result); exit(result.hasPrefix("FAILED") ? 1 : 0)
+        }
+        if let flag = arguments.firstIndex(of: "--look") {
+            _ = NSApplication.shared
+            let path = arguments.count > flag + 1 && !arguments[flag + 1].hasPrefix("--") ? arguments[flag + 1] : FileManager.default.temporaryDirectory.appendingPathComponent("conductor-look.png").path
+            let result = ScreenTools.look(to: path, grid: !arguments.contains("--no-grid")); print(result); exit(result.hasPrefix("FAILED") ? 1 : 0)
+        }
         if let flag = CommandLine.arguments.firstIndex(of: "--speech-file-test"), CommandLine.arguments.count > flag + 1 {
             _ = NSApplication.shared
             NSApp.setActivationPolicy(.accessory)

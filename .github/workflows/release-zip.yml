@@ -27,6 +27,18 @@ jobs:
           xcrun swift --version
       - name: Build unsigned app
         run: bash build.sh
+      - name: Verify bundled artwork and localizations
+        run: |
+          resources='dist/Conductor.app/Contents/Resources'
+          test -s "$resources/AppIcon.icns"
+          for language in en ru; do
+            test -s "$resources/$language.lproj/Localizable.strings"
+            test -s "$resources/$language.lproj/InfoPlist.strings"
+          done
+          for state in ready listening recognizing thinking acting checking attention; do
+            test -s "$resources/ConductorStates/$state.png"
+            test -s "$resources/ConductorStates/$state.mp4"
+          done
       - name: Test command handling and action catalogue
         run: "'dist/Conductor.app/Contents/MacOS/Conductor' --self-test"
       - name: Test API handling with local HTTP fixtures

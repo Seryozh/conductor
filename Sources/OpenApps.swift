@@ -45,7 +45,8 @@ enum OpenApps {
         let raw = spoken.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let wanted = (WindowArranger.aliases[raw] ?? raw).lowercased()
         guard !wanted.isEmpty else { return [] }
-        let exact = apps.indices.filter { apps[$0].name.lowercased() == wanted || apps[$0].bundle.lowercased() == wanted }
+        let bundleAlias = WindowArranger.bundleAlias(spoken)?.lowercased()
+        let exact = apps.indices.filter { apps[$0].name.lowercased() == wanted || apps[$0].bundle.lowercased() == wanted || apps[$0].bundle.lowercased() == bundleAlias }
         if !exact.isEmpty { return exact }
         let partial = apps.indices.filter { apps[$0].name.lowercased().contains(wanted) }
         return Set(partial.map { apps[$0].name }).count == 1 ? partial : []
@@ -57,7 +58,7 @@ enum OpenApps {
         let wanted = (WindowArranger.aliases[raw] ?? raw).lowercased()
         let app = name.lowercased()
         guard !wanted.isEmpty else { return false }
-        return app == wanted || bundle.lowercased() == wanted || app.contains(wanted) || wanted.contains(app)
+        return app == wanted || bundle.lowercased() == wanted || bundle.lowercased() == WindowArranger.bundleAlias(spoken)?.lowercased() || app.contains(wanted) || wanted.contains(app)
     }
 
     struct Outcome {

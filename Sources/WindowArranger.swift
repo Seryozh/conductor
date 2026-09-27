@@ -17,9 +17,17 @@ enum WindowArranger {
             .merging(VoiceLocalization.aliases("apps.aliases")) { _, localized in localized }
     }
 
+    /// Resolve a product name to a stable app identity even when its display name differs.
+    static func bundleAlias(_ name: String) -> String? {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let resolved = (aliases[normalized] ?? normalized).lowercased()
+        return ["codex": "com.openai.codex", "chatgpt": "com.openai.codex", "claude": "com.anthropic.claudefordesktop", "google chrome": "com.google.Chrome"][resolved]
+    }
+
     static func runningApp(_ name: String) -> NSRunningApplication? {
         let wanted = (aliases[name.lowercased()] ?? name).lowercased()
         let apps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+        if let bundle = bundleAlias(name), let exact = apps.first(where: { $0.bundleIdentifier?.lowercased() == bundle.lowercased() }) { return exact }
         return apps.first { $0.localizedName?.lowercased() == wanted }
             ?? apps.first { ($0.localizedName?.lowercased() ?? "").contains(wanted) }
             ?? apps.first { ($0.bundleIdentifier?.lowercased() ?? "").contains(wanted) }

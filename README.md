@@ -55,6 +55,8 @@ Choose **Sign in with ChatGPT** when it starts. OpenAI’s [Codex CLI guide](htt
 
 Open the [TypeSafe quick start](https://docs.typesafe.ai/introduction/quickstart), sign in to its dashboard, and create an API key. You will enter it in Conductor after opening the app. Conductor saves it in macOS Keychain and does not read keys from shell variables or .env files.
 
+If you already use OpenRouter, you can use an [OpenRouter API key](https://openrouter.ai/settings/keys) instead. Conductor detects the provider from the key and calls Jev through OpenRouter’s [Decisions API](https://openrouter.ai/blog/tutorials/how-to-use-jev/). That route uses your OpenRouter credits and does not need a separate TypeSafe account.
+
 ### 3. Build and open Conductor
 
 Clone this repository from its GitHub **Code** menu. If Xcode Command Line Tools are missing, run `xcode-select --install` and wait for the installer to finish. Then, from the repository folder, run:
@@ -67,7 +69,7 @@ open 'dist/Conductor.app'
 
 The build uses Apple frameworks and Swift. It does not need a package manager or third-party Swift packages. It creates an unsigned app.
 
-In Settings → **Connections**, choose the CLI you signed in to and enter the TypeSafe API key under **Jev action selector**. If Conductor cannot find your CLI, set its executable path in **Advanced → CLI and local speech paths**. Apple Speech works by default. Whisper is optional.
+In Settings → **Connections**, choose the CLI you signed in to and enter your TypeSafe or OpenRouter API key under **Jev action selector**. Click **Check connection** to send a small, billable Jev request without taking any computer action. If Conductor cannot find your CLI, set its executable path in **Advanced → CLI and local speech paths**. Apple Speech works by default. Whisper is optional.
 
 ### 4. Set up local Whisper (optional)
 
@@ -90,11 +92,11 @@ Use the buttons in **Settings → Access → macOS permissions** for Microphone,
 
 ## How it works
 
-![Architecture diagram showing speech transcription, a Claude Code or Codex CLI brain, TypeSafe Jev action selection, and the macOS controller](assets/architecture.svg)
+![Architecture diagram showing speech transcription, a Claude Code or Codex CLI brain, Jev action selection through TypeSafe or OpenRouter, and the macOS controller](assets/architecture.svg)
 
 Apple Speech handles live transcription. Conductor asks macOS to keep recognition on the device when the selected language supports it; otherwise Apple Speech may use its network service. Optional Whisper makes a local final pass. The selected CLI receives the request, app context, screen text, open windows, and screenshots when needed. It can also use its own tools for files, commands, and web work.
 
-When a task needs a visible control, Conductor reads the app’s Accessibility tree and sends the request, screen text, available actions, and action history as text to TypeSafe’s Jev API. Jev chooses one action. The Swift controller performs it and checks the new state before continuing. TypeSafe receives text, not the audio or screenshots.
+The brain can open and close apps, arrange windows, open desktop sessions, and press an exact named control through the Swift controller. When it asks Jev to choose a visible control, Conductor reads the app’s Accessibility tree and sends the request, screen text, available actions, and action history through TypeSafe or OpenRouter. Jev chooses one action. The controller performs it and checks the new state before continuing. The selected Jev provider receives text, not the audio or screenshots.
 
 The [architecture notes](docs/architecture.md) describe the data flow in more detail.
 
@@ -106,11 +108,11 @@ Stop a running task with the **Stop** button or say **“cancel task.”** macOS
 
 The CLI may read local files or app data while carrying out a request. It may also change files, send messages, or make other changes through apps if a task asks it to. Secure Accessibility fields are left out of Jev’s captured screen state, but the CLI can still reach data through its own tools. Diagnostic logs are off by default; when enabled, they can contain commands and screen text.
 
-The **Jev activity** panel holds up to 300 TypeSafe API call records in memory while the app is open. Those records can contain the request, screen text, available actions, and API response. Closing the app clears the history. The app does not save those records to disk.
+The **Jev activity** panel holds up to 300 Jev API call records in memory while the app is open. Those records can contain the request, screen text, available actions, and API response. Closing the app clears the history. The app does not save those records to disk.
 
 ## What costs money
 
-Jev needs a TypeSafe API key. The current [TypeSafe model page](https://docs.typesafe.ai/models) lists Jev at **$0.042 per million input tokens**; output tokens are free. Check the docs before signing up or estimating usage because prices can change.
+Jev needs a TypeSafe API key or an OpenRouter API key. The current [TypeSafe model page](https://docs.typesafe.ai/models) lists Jev at **$0.042 per million input tokens**; output tokens are free. [Jev on OpenRouter](https://openrouter.ai/~typesafe/jev-latest) lists the same token price, paid from OpenRouter credits. OpenRouter also charges a [fee when you buy credits](https://openrouter.ai/docs/faq#pricing-and-fees). These API costs are separate from your Claude or ChatGPT subscription. Check the provider’s current prices before signing up or estimating usage.
 
 Sign in to Claude Code or Codex with the Claude or ChatGPT subscription you already have, subject to that provider’s plan and usage limits. If you sign in to Claude Code through Claude Console, Anthropic [bills that usage separately at API rates](https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage). Optional Whisper runs locally and uses your Mac’s storage and compute.
 
@@ -126,7 +128,7 @@ No. The selected CLI runs with its own approval and sandbox checks bypassed. mac
 
 Click **Stop** or say **“cancel task.”**
 
-**Does TypeSafe receive my voice or screenshots?**
+**Does the Jev provider receive my voice or screenshots?**
 
 No. The Jev API receives text state for action selection, including the request, screen text, available actions, and history. The CLI provider may receive screenshots when the brain needs one. Apple Speech may use Apple’s network service when on-device recognition is unavailable; optional Whisper runs locally.
 

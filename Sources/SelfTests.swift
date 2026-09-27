@@ -11,6 +11,21 @@ enum SelfTests {
             else { UserDefaults.standard.removeObject(forKey: "speechLocale") }
         }
         InputFieldTests.run()
+        CommandCompletionTests.run()
+        precondition(JevProvider.detect(key: "sk-or-public-fixture-only-not-a-real-key") == .openRouter)
+        precondition(JevProvider.openRouter.endpoint.absoluteString == "https://openrouter.ai/api/alpha/decisions")
+        precondition(JevProvider.openRouter.model == "~typesafe/jev-latest")
+        precondition(BrainChoice.find("terra")?.model == "gpt-5.6-terra" && BrainChoice.find("terra")?.codex == true)
+        let renamedCodex = [(name: "ChatGPT", bundle: "com.openai.codex"), (name: "Claude", bundle: "com.anthropic.claudefordesktop")]
+        precondition(OpenApps.matching("Codex", in: renamedCodex) == [0])
+        precondition(OpenApps.matching("кодекс", in: renamedCodex) == [0])
+        precondition(OpenApps.keeps("Codex", name: "ChatGPT", bundle: "com.openai.codex"))
+        precondition(!OpenApps.keeps("Codex", name: "Claude", bundle: "com.anthropic.claudefordesktop"))
+        precondition(WindowArranger.bundleAlias("кодекс") == "com.openai.codex")
+        print("PASS: restored OpenRouter, Terra, and stable Codex keep/arrange aliases.")
+        CommandJournalTests.run()
+        let diagnosticReply = try! ClaudeBrain.parse(#"{"say":"Noted.","missing_tool":"example capability","agent_error":{"error":"wrong app","correction":"use Notes"}}"#)
+        precondition(diagnosticReply.missingTool == "example capability" && diagnosticReply.agentError?["correction"] == "use Notes")
         precondition(JevClient.model == "jev-latest")
         precondition(JevProvider.detect(key: "typesafe-example-key-that-is-long-enough") == .typeSafe && JevProvider.detect(key: "short") == nil)
         precondition(JevProvider.typeSafe.model == "jev-latest" && JevProvider.typeSafe.endpoint.absoluteString == "https://api.typesafe.ai/v1/systemone")

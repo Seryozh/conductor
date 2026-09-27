@@ -7,7 +7,7 @@ import Foundation
 /// from a developer-specific checkout.
 final class LocalWhisper: @unchecked Sendable {
     static let shared = LocalWhisper()
-    static let prompt = "Conductor, Claude Code, Codex, Chrome, Safari, Finder, YouTube."
+    static let prompt = "Conductor, Claude, Claude Code, Codex, Opus, Sonnet, Astra, Luna, Terra, Muse, Jev, Jev Voice, Hermes, ChatGPT, GPT, Chrome, Safari, Finder, YouTube, Roblox Studio, Cowork, Meshy."
     static var binary: String {
         if let configured = UserDefaults.standard.string(forKey: "whisperServerPath"), !configured.isEmpty { return configured }
         let home = FileManager.default.homeDirectoryForCurrentUser.path
@@ -197,9 +197,12 @@ final class LocalWhisper: @unchecked Sendable {
         return text.isEmpty ? nil : text
     }
 
-    /// Normalize whitespace in a Whisper transcript.
+    /// Strip known subtitle hallucinations and normalize transcript whitespace.
     static func clean(_ raw: String) -> String {
         var text = raw.replacingOccurrences(of: "\n", with: " ")
+        for junk in ["Субтитры сделал DimaTorzok", "Субтитры создавал DimaTorzok", "Субтитры делал DimaTorzok", "Редактор субтитров А.Семкин Корректор А.Егорова"] {
+            text = text.replacingOccurrences(of: junk, with: "")
+        }
         while text.contains("  ") { text = text.replacingOccurrences(of: "  ", with: " ") }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }

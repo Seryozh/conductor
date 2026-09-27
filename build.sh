@@ -19,6 +19,7 @@ cp "$SOURCE_DIR/Info.plist" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$APP/Contents/Info.plist"
 if [ -d "$SOURCE_DIR/Localizations" ]; then cp -R "$SOURCE_DIR/Localizations"/*.lproj "$APP/Contents/Resources/"; fi
+if [ -d "$SOURCE_DIR/Resources/ConductorStates" ]; then cp -R "$SOURCE_DIR/Resources/ConductorStates" "$APP/Contents/Resources/"; fi
 if [ -f "$SOURCE_DIR/AppIcon.icns" ]; then cp "$SOURCE_DIR/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"; fi
 
 if [ -n "${CONDUCTOR_SIGNING_IDENTITY:-}" ]; then

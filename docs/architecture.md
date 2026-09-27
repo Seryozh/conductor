@@ -10,7 +10,9 @@ The selected Claude Code or Codex CLI receives the request, current app context,
 
 ## Choosing visible UI actions
 
-When a request needs a visible action, the Swift controller reads the current Accessibility tree and builds an action catalogue from controls, menus, installed apps, physical keys, and pointer operations. It sends the text request, screen text, catalogue, and action history to TypeSafe's Jev API. Jev returns one choice. The API receives text, not the original audio or a screenshot.
+The brain can ask the Swift controller directly to open or close apps, arrange windows, open desktop sessions, or press an exact named control. Those operations do not require Jev to choose a control.
+
+When the brain asks Jev to choose a visible action, the controller reads the current Accessibility tree and builds an action catalogue from controls, menus, installed apps, physical keys, and pointer operations. It sends the text request, screen text, catalogue, and action history through TypeSafe or OpenRouter. The provider is detected from the saved key. Jev returns one choice. The API receives text, not the original audio or a screenshot.
 
 Large catalogues are grouped so each discovered action can be reached within the provider's choice limit. Group selection does not itself operate the Mac.
 
@@ -24,7 +26,7 @@ The brain can also act directly through its own CLI tools. The Jev action catalo
 
 The CLI is launched with per-action approval and sandbox checks disabled. Conductor does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
 
-Whisper audio stays on the Mac. Apple Speech may use Apple’s network service when on-device recognition is unavailable. The selected CLI provider receives the request, screen text, and screenshots when needed. TypeSafe receives the request and text context used to choose a UI action, not audio or screenshots. The TypeSafe key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
+Whisper audio stays on the Mac. Apple Speech may use Apple’s network service when on-device recognition is unavailable. The selected CLI provider receives the request, screen text, and screenshots when needed. The selected Jev provider receives the request and text context used to choose a UI action, not audio or screenshots. With OpenRouter selected, that service forwards the request to TypeSafe. The provider key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
 
 The Jev activity panel holds up to 300 API call records in memory for the current app session. Records can contain the request, screen text, action choices, and API response. They are not written to disk and disappear when the app closes. Opt-in diagnostic logs are separate files under macOS Application Support.
 

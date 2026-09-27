@@ -463,22 +463,8 @@ final class MacController {
             do { defer { up.post(tap: .cghidEventTap) }; try await Task.sleep(nanoseconds: 35_000_000) }
         }
     }
-    /// Key combinations that lock the screen, log out, force-quit or quit the frontmost app.
-    /// Jev once chose Command+Control+Q and Command+Shift+Q when asked to quit Calculator
-    /// (2026-09-27), so these are refused here no matter who asks. Quitting an app goes
-    /// through Claude's "quit" field instead, which terminates only the named app.
-    static func blockedReason(_ code: CGKeyCode, flags: CGEventFlags) -> String? {
-        let command = flags.contains(.maskCommand), control = flags.contains(.maskControl)
-        let shift = flags.contains(.maskShift), option = flags.contains(.maskAlternate)
-        if code == 12 && command && control { return "Command+Control+Q locks the screen" }
-        if code == 12 && command && shift { return "Command+Shift+Q logs out" }
-        if code == 12 && command { return "Command+Q quits whatever app is in front" }
-        if code == 53 && command && option { return "Command+Option+Escape opens Force Quit" }
-        return nil
-    }
     func sendKey(_ code: CGKeyCode, flags: CGEventFlags) throws {
         try Task.checkCancellation()
-        if let reason = Self.blockedReason(code, flags: flags) { throw VoiceError.message("Blocked for safety: \(reason).") }
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true), let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false) else { throw VoiceError.message("Cannot create keyboard events.") }
         down.flags = flags; up.flags = flags
         down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)

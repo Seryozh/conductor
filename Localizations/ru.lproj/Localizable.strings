@@ -239,3 +239,44 @@
 "This call selected or checked an option. No computer action result is attached to this call." = "Этот вызов выбрал или проверил вариант. Результат действия на компьютере к нему не прикреплён.";
 "Waiting for Jev…" = "Ожидание Jev…";
 "No response body was received." = "Тело ответа не получено.";
+
+"Check Settings to continue." = "Проверьте параметры в настройках.";
+
+"Open Settings to finish setup." = "Завершите настройку в параметрах.";
+
+"Acting" = "Действую";
+
+"Ready" = "Готов";
+
+"Connect Jev and allow Mac access." = "Подключите Jev и разрешите доступ к Mac.";
+
+"Checking" = "Проверяю";
+
+"Thinking" = "Думаю";
+
+"Allow Mac access in Settings." = "Разрешите доступ к Mac в настройках.";
+
+"Recognizing" = "Распознаю";
+
+"Connect Jev in Settings." = "Подключите Jev в настройках.";
+
+"model.terra" = "терра|терру|террой|терре|terra";
+
+"commands.visualWords" = "экран|картин|фото|изображ|вижу|видишь|посмотри|глянь|что тут|что там|нарисова|цвет|график|диаграм|скриншот";
+
+"Local agents" = "Локальные агенты";
+"Agent dashboard" = "Панель агентов";
+"Refresh agent status" = "Обновить статус агентов";
+"This command: ≈%@%% of the five-hour limit" = "Эта команда: ≈%@%% лимита на пять часов";
+"All sessions: %@%%. Conductor: ≈%@%%." = "Все сессии: %@%%. Conductor: ≈%@%%.";
+"Resets at %@." = "Сброс в %@.";
+"Weekly usage: %@%%." = "За неделю: %@%%.";
+"Estimated from local session costs. Account use on other devices can affect this estimate." = "Оценка по расходу локальных сессий. Использование аккаунта на других устройствах влияет на неё.";
+"No local agent dashboard is configured." = "Локальная панель агентов не настроена.";
+"Could not refresh the local agent dashboard." = "Не удалось обновить локальную панель агентов.";
+"The configured local agent dashboard could not be opened." = "Не удалось открыть указанную локальную панель агентов.";
+"Could not read the configured agent status." = "Не удалось прочитать статус локальных агентов.";
+"Check a recording…" = "Проверить запись…";
+"Run commands from a recording…" = "Выполнить команды из записи…";
+"Run commands" = "Выполнить команды";
+"Check speech" = "Проверить распознавание";

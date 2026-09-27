@@ -72,6 +72,7 @@ struct SettingsView: View {
     @AppStorage("codexCLIPath") private var codexCLIPath = ""
     @AppStorage("whisperServerPath") private var whisperServerPath = ""
     @AppStorage("whisperModelPath") private var whisperModelPath = ""
+    @AppStorage("instructionsFilePath") private var instructionsFilePath = ""
     @AppStorage("diagnosticsEnabled") private var diagnosticsEnabled = false
     @State private var section: String
     @State private var showGuide: Bool
@@ -144,7 +145,7 @@ struct SettingsView: View {
                     switch section {
                     case "Connections": brainCard; jevCard
                     case "Access": permissionsCard; privacyDisclosure
-                    case "Advanced": pathsCard; conversationCard; privacyCard
+                    case "Advanced": pathsCard; localAgentsCard; conversationCard; privacyCard
                     case "Jev activity": JevActivityView(model: model)
                     default: voiceCard
                     }
@@ -156,12 +157,27 @@ struct SettingsView: View {
         DisclosureGroup("Full access and privacy") { privacyCard.padding(.top, 12) }
             .font(.system(size: 12)).foregroundStyle(Palette.muted)
     }
+    @ViewBuilder private var localAgentsCard: some View {
+        if model.agentDashboardAvailable || LocalIntegrations.configured(.agentStatus) {
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Local agents", systemImage: "person.2").font(.system(size: 15, weight: .semibold))
+                    if !model.agentsSummary.isEmpty { Text(model.agentsSummary).font(.system(size: 12)).foregroundStyle(model.agentsOK ? Palette.muted : Palette.danger).fixedSize(horizontal: false, vertical: true) }
+                    HStack {
+                        if model.agentDashboardAvailable { Button("Agent dashboard") { model.openAgentMap() }.buttonStyle(ConductorButtonStyle()) }
+                        if LocalIntegrations.configured(.agentStatus) { Button("Refresh agent status") { model.refreshAgentStatus() }.buttonStyle(.plain).foregroundStyle(Palette.muted) }
+                    }
+                }
+            }
+        }
+    }
     private var conversationCard: some View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Conversation").font(.system(size: 15, weight: .semibold))
                 ContextBar(model: model)
                 Text("Conversation turns: \(model.brainTurns)").font(.system(size: 12)).foregroundStyle(Palette.muted)
+                if model.limitShare != nil { LimitShareView(model: model) }
                 if !model.usageLine.isEmpty {
                     Text(model.usageLine + "\n" + model.dayLine).font(.system(size: 12)).foregroundStyle(Palette.muted).textSelection(.enabled)
                 }
@@ -193,7 +209,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 9) {
                         Text(LocalizedStringKey(["Choose the brain behind Conductor.", "Connect Jev's actions.", "Let Conductor work on your Mac.", "Try a small request."][guideStep]))
                             .font(.system(size: 26, weight: .semibold))
-                        Text(LocalizedStringKey(["Use the Claude Code or ChatGPT login you already have. You can change the brain later.", "Your TypeSafe key stays in macOS Keychain. Check the connection when you are ready.", "These controls open the real macOS permission prompts. You can finish this later in Preferences.", "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try."][guideStep]))
+                        Text(LocalizedStringKey(["Use the Claude Code or ChatGPT login you already have. You can change the brain later.", "Your Jev API key stays in macOS Keychain. Check the connection when you are ready.", "These controls open the real macOS permission prompts. You can finish this later in Preferences.", "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try."][guideStep]))
                             .font(.system(size: 13)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                     }
                     switch guideStep {
@@ -273,6 +289,8 @@ struct SettingsView: View {
                     .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 TextField("Claude Code executable path", text: $claudeCLIPath).textFieldStyle(.roundedBorder)
                 TextField("Codex executable path", text: $codexCLIPath).textFieldStyle(.roundedBorder)
+                TextField("Personal instructions file (optional)", text: $instructionsFilePath).textFieldStyle(.roundedBorder)
+                Text("Local instructions are used when a new brain conversation starts.").font(.system(size: 11)).foregroundStyle(Palette.muted)
                 Divider()
                 ConductorSwitchRow(title: "Use local Whisper for final transcription", isOn: $model.whisperEnabled)
                     .disabled(!LocalWhisper.shared.installed)
@@ -337,7 +355,7 @@ struct SettingsView: View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Jev action selector", systemImage: "key.fill").font(.system(size: 16, weight: .semibold))
-                Text(model.keyConfigured ? "Your TypeSafe API key is stored in macOS Keychain." : "Add a TypeSafe API key. Conductor stores it only in macOS Keychain.")
+                Text(model.keyConfigured ? "Your Jev API key is stored in macOS Keychain." : "Add a TypeSafe or OpenRouter API key. Conductor stores it only in macOS Keychain.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted)
                 if model.keyConfigured {
                     DisclosureGroup("Replace API key") { keyEntry.padding(.top, 8) }.font(.system(size: 12))
@@ -374,7 +392,7 @@ struct SettingsView: View {
                 Text("Full access and privacy").font(.system(size: 14, weight: .medium))
                 Text("The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Conductor. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
-                Text("Apple Speech may use Apple's network service when on-device recognition is unavailable; optional Whisper runs locally. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request.")
+                Text("Apple Speech may use Apple's network service when on-device recognition is unavailable; optional Whisper runs locally. The selected brain provider receives the request, screen text, and screenshots when needed. The selected Jev provider (TypeSafe or OpenRouter) receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 ConductorSwitchRow(title: "Write diagnostic logs (may include screen text and commands)", isOn: $diagnosticsEnabled)
             }
@@ -383,7 +401,7 @@ struct SettingsView: View {
 
     private var keyEntry: some View {
         HStack {
-            SecureField("TypeSafe API key", text: $model.keyInput).textFieldStyle(.roundedBorder)
+            SecureField("TypeSafe or OpenRouter API key", text: $model.keyInput).textFieldStyle(.roundedBorder)
             Button("Save") { model.saveKey() }.disabled(model.keyInput.isEmpty)
         }
     }
@@ -402,6 +420,17 @@ struct SettingsView: View {
 
 
 extension VoiceState {
+    var presentationLabel: LocalizedStringKey {
+        switch self {
+        case .ready: return "Ready"
+        case .listening: return "Listening"
+        case .recognizing: return "Recognizing"
+        case .thinking: return "Thinking"
+        case .acting: return "Acting"
+        case .checking: return "Checking"
+        case .attention: return "Attention"
+        }
+    }
     var icon: String {
         switch self {
         case .ready: return "mic.slash"
@@ -439,7 +468,7 @@ struct CommandBarView: View {
     let releaseKeyboard: () -> Void
     let resize: (NSSize) -> Void
     static let width: CGFloat = 360
-    static let railHeight: CGFloat = 54
+    static let railHeight: CGFloat = 132
 
     init(model: AppModel, openSettings: @escaping () -> Void, releaseKeyboard: @escaping () -> Void,
          resize: @escaping (NSSize) -> Void = { _ in }, maximumHeight: CGFloat = 520,
@@ -462,72 +491,138 @@ struct CommandBarView: View {
     private static func needsAttention(_ model: AppModel) -> Bool {
         model.requestingAudio || model.voiceState == .attention || model.detail.hasPrefix("Microphone unavailable") || model.billingIssue != nil || !model.keyConfigured || !model.accessibilityGranted
     }
-    /// Deterministic sizing avoids geometry feedback while text changes during recognition.
-    static func preferredSize(model: AppModel, typing: Bool = false, details: Bool = false,
-                              maximumHeight: CGFloat = 520, maximumWidth: CGFloat = 600, attentionCollapsed: Bool = false) -> NSSize {
+    private static func setupMessage(_ model: AppModel) -> String {
+        if !model.keyConfigured && !model.accessibilityGranted { return "Connect Jev and allow Mac access." }
+        if !model.keyConfigured { return "Connect Jev in Settings." }
+        return "Allow Mac access in Settings."
+    }
+    private static func captureInstruction(_ model: AppModel) -> String {
+        if model.holdingToTalk { return model.busy ? "Release Fn to add to the queue" : "Release Fn to send" }
+        if model.tapListening || model.wordMode { return "Say ‘end command’ or press Fn to send" }
+        return model.continuousListening ? "Pause to send your next request" : "Pause when finished"
+    }
+    private static func workFallback(_ model: AppModel) -> String {
+        model.phase == "Thinking" ? "Thinking" : "Acting"
+    }
+    private static func artworkWidth(for width: CGFloat) -> CGFloat {
+        width < 380 ? min(140, max(100, width - 212)) : 156
+    }
+    private static func answerFitsColumn(_ model: AppModel, details: Bool, attention: Bool, width: CGFloat) -> Bool {
+        guard !details, !attention, model.answerText.count <= 180 else { return false }
+        let column = width < 320 ? width - 32 : width - Self.artworkWidth(for: width) - 36
+        let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = 2
+        let text = NSAttributedString(string: model.answerText, attributes: [.font: NSFont.systemFont(ofSize: 15), .paragraphStyle: paragraph])
+        return text.boundingRect(with: NSSize(width: max(100, column - 32), height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height <= 78
+    }
+    /// Content chooses the width. Only long content and typed input need a wider surface.
+    private static func metrics(model: AppModel, typing: Bool, details: Bool, maximumHeight: CGFloat,
+                                maximumWidth: CGFloat, attentionCollapsed: Bool) -> (size: NSSize, header: CGFloat, message: CGFloat) {
         let capturing = isCapturing(model)
         let recognizing = model.phase == "Recognizing"
-        let attention = needsAttention(model) && !attentionCollapsed
+        let attention = needsAttention(model) && !attentionCollapsed && !model.busy && !capturing && !recognizing
         let answer = !model.answerText.isEmpty && !model.busy && !capturing && !recognizing
-        let expanded = model.busy || capturing || recognizing || attention || answer || typing
-        let width = min(expanded ? 600 : Self.width, maximumWidth)
-        guard expanded else { return NSSize(width: width, height: railHeight) }
-        var content: CGFloat = 0
-        let hasBody = model.busy || capturing || recognizing || attention || answer
-        func height(_ text: String, size: CGFloat, maximum: CGFloat) -> CGFloat {
-            let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = 5
-            let attributed = NSAttributedString(string: text, attributes: [.font: NSFont.systemFont(ofSize: size, weight: size >= 20 ? .semibold : .regular), .paragraphStyle: paragraph])
-            let measured = ceil(attributed.boundingRect(with: NSSize(width: max(160, width - 48), height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height) + 2
+        let simultaneousCapture = model.busy && (capturing || recognizing)
+        let extendedCapture = (capturing || recognizing) && (model.busy || model.liveTranscript.count > 120)
+        let extendedWork = model.busy && model.detail.count > 180
+        let answerWidth: CGFloat = model.answerText.count > 240 || details ? 540 : 500
+        let targetWidth: CGFloat = answer ? answerWidth : (typing || extendedWork || (extendedCapture && !simultaneousCapture)) ? 500 : simultaneousCapture ? 440 : (attention || model.busy || capturing || needsAttention(model)) ? 420 : Self.width
+        let width = min(targetWidth, maximumWidth)
+        let narrow = width < 320
+        let columnWidth = max(120, width - (narrow ? 32 : Self.artworkWidth(for: width) + 36))
+        let shortAnswer = answer && answerFitsColumn(model, details: details, attention: attention, width: width)
+        let extendedAnswer = answer && !shortAnswer
+        func textHeight(_ text: String, size: CGFloat, width: CGFloat? = nil, maximum: CGFloat = 500) -> CGFloat {
+            guard !text.isEmpty else { return 0 }
+            let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = size == 15 ? 2 : 3
+            let attributed = NSAttributedString(string: text, attributes: [.font: NSFont.systemFont(ofSize: size, weight: size >= 17 ? .semibold : .regular), .paragraphStyle: paragraph])
+            let measured = ceil(attributed.boundingRect(with: NSSize(width: width ?? columnWidth, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height) + 3
             return min(maximum, measured)
         }
-        if hasBody { content += 48 }
-        if model.busy {
-            if !model.transcript.isEmpty { content += height(model.transcript, size: 12, maximum: 36) + 15 }
-            content += max(20, height(model.detail, size: 21, maximum: 86))
-        }
-        if capturing || recognizing {
-            if model.busy { content += 35 }
-            content += 60 + height(model.liveTranscript.isEmpty ? "Listening…" : model.liveTranscript, size: 21, maximum: 140)
-        }
-        if answer {
-            let requestHeight = model.transcript.isEmpty ? 0 : 7 + height(model.transcript, size: 12, maximum: 36)
-            content += max(24, 15 + requestHeight) + 16 + height(model.answerText, size: 17, maximum: 290) + 16 + 18
+        func localized(_ key: String) -> String { NSLocalizedString(key, comment: "Command surface sizing") }
+        var message: CGFloat = 0
+        if attention {
+            let setup = !model.keyConfigured || !model.accessibilityGranted
+            message = 24 + 8 + textHeight(setup ? localized(setupMessage(model)) : model.detail, size: 12, maximum: 120)
+        } else if shortAnswer {
+            message = max(24, textHeight(model.answerText, size: 15, width: max(100, columnWidth - 32))) + 8 + 18
+        } else if extendedAnswer {
+            message = max(24, textHeight(model.transcript.isEmpty ? localized("Answer") : model.transcript, size: 13, maximum: 42))
+        } else if model.busy || capturing || recognizing {
+            if model.busy {
+                if capturing { message += 15 + 7 }
+                if !model.transcript.isEmpty { message += textHeight(model.transcript, size: 11, maximum: 30) + 7 }
+                let detail = model.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? localized(workFallback(model)) : extendedWork ? model.phase : model.detail
+                message += textHeight(detail, size: 17, maximum: 85)
+            }
+            if (capturing || recognizing) && !model.busy {
+                if !model.liveTranscript.isEmpty && !extendedCapture {
+                    message += 15 + 6 + textHeight(model.liveTranscript, size: 17, maximum: 110)
+                } else { message += 22 }
+                message += 8 + textHeight(localized(recognizing ? "One moment…" : captureInstruction(model)), size: 11, maximum: 34)
+            }
+        } else { message = 22 + 6 + 30 }
+        let hasStats = model.queuedCount > 0 || (model.busy && model.shotsThisCommand > 0)
+        let agentRow: CGFloat = 0
+        let controlHeight: CGFloat = extendedAnswer ? (attention ? 34 : 0) : 34 + agentRow
+        let controlsSpacing: CGFloat = controlHeight > 0 ? 12 : 0
+        let statsHeight: CGFloat = hasStats ? 24 : 0
+        let naturalHeader = max(extendedAnswer ? 114 : Self.railHeight, message + controlsSpacing + controlHeight + 28 + statsHeight) + (narrow ? 110 : 0)
+        let hasExtension = extendedAnswer || extendedCapture || extendedWork
+        let editorHeight: CGFloat = typing ? 106 : 0
+        let footerHeight: CGFloat = extendedAnswer ? 54 : 0
+        let header = min(naturalHeader, max(110, maximumHeight - editorHeight - footerHeight - (hasExtension ? 100 : 0)))
+        let messageHeight = min(message, max(24, header - (narrow ? 110 : 0) - 28 - controlsSpacing - controlHeight - statsHeight))
+        var extensionHeight: CGFloat = 0
+        if extendedAnswer {
+            extensionHeight += 28 + textHeight(model.answerText, size: 17, width: max(120, width - 40), maximum: 300)
+            if attention { extensionHeight += 40 + (model.transcript.isEmpty ? 0 : 7 + textHeight(model.transcript, size: 12, width: max(120, width - 40), maximum: 36)) }
             if details {
-                content += 17 + 40
-                if !model.usageLine.isEmpty { content += 16 + height(model.usageLine + "\n" + model.dayLine, size: 12, maximum: 110) }
-                if model.shotsThisCommand > 0 { content += 68 }
+                extensionHeight += 80
+                if model.limitShare != nil { extensionHeight += 132 }
+                if !model.usageLine.isEmpty { extensionHeight += textHeight(model.usageLine + "\n" + model.dayLine, size: 12, width: max(120, width - 40), maximum: 110) }
+                if model.shotsThisCommand > 0 { extensionHeight += 68 }
             }
         }
-        if attention && !model.busy && !capturing && !recognizing {
-            content += 83 + height(model.detail, size: 13, maximum: 72)
-            if answer { content += 35 }
+        if extendedCapture {
+            let transcript = model.liveTranscript.isEmpty ? localized(recognizing ? "One moment…" : "Go ahead, I'm listening.") : model.liveTranscript
+            extensionHeight += 28 + textHeight(transcript, size: 18, width: max(120, width - 40), maximum: 260)
+            if model.busy { extensionHeight += 15 + 8 + 8 + textHeight(localized(recognizing ? "Finishing your transcript" : captureInstruction(model)), size: 11, width: max(120, width - 40), maximum: 34) }
         }
-        if typing { content += 112 }
-        return NSSize(width: width, height: min(max(railHeight + content, typing ? 166 : 160), maximumHeight))
+        if extendedWork { extensionHeight += 28 + textHeight(model.detail, size: 17, width: max(120, width - 40), maximum: 260) }
+        return (NSSize(width: width, height: min(maximumHeight, header + extensionHeight + footerHeight + editorHeight)), header, messageHeight)
+    }
+    static func preferredSize(model: AppModel, typing: Bool = false, details: Bool = false,
+                              maximumHeight: CGFloat = 520, maximumWidth: CGFloat = 600, attentionCollapsed: Bool = false) -> NSSize {
+        metrics(model: model, typing: typing, details: details, maximumHeight: maximumHeight,
+                maximumWidth: maximumWidth, attentionCollapsed: attentionCollapsed).size
     }
     private var capturing: Bool { Self.isCapturing(model) }
     private var recognizing: Bool { model.phase == "Recognizing" }
     private var attention: Bool { Self.needsAttention(model) }
     private var showsAttention: Bool { attention && !attentionCollapsed }
+    private var attentionVisible: Bool { showsAttention && !model.busy && !capturing && !recognizing }
     private var setupIncomplete: Bool { !model.keyConfigured || !model.accessibilityGranted }
     private var attentionIdentity: String { model.phase + "|" + model.detail + "|" + String(model.keyConfigured) + "|" + String(model.accessibilityGranted) + "|" + (model.billingIssue ?? "") }
     private var hasAnswer: Bool { !model.answerText.isEmpty && !model.busy && !capturing && !recognizing }
-    private var size: NSSize {
-        Self.preferredSize(model: model, typing: showEditor, details: showDetails, maximumHeight: limits.height, maximumWidth: limits.width, attentionCollapsed: attentionCollapsed)
+    private var extendedAnswer: Bool { hasAnswer && !Self.answerFitsColumn(model, details: showDetails, attention: attentionVisible, width: size.width) }
+    private var extendedCapture: Bool { (capturing || recognizing) && (model.busy || model.liveTranscript.count > 120) }
+    private var extendedWork: Bool { model.busy && model.detail.count > 180 }
+    private var hasExtension: Bool { extendedAnswer || extendedCapture || extendedWork }
+    private var layout: (size: NSSize, header: CGFloat, message: CGFloat) {
+        Self.metrics(model: model, typing: showEditor, details: showDetails, maximumHeight: limits.height, maximumWidth: limits.width, attentionCollapsed: attentionCollapsed)
     }
-    private var expanded: Bool { size.height > Self.railHeight }
-    private var hasContent: Bool { model.busy || capturing || recognizing || showsAttention || hasAnswer }
+    private var size: NSSize { layout.size }
+    private var conductorState: VoiceState {
+        attention && !model.busy && !capturing && !recognizing ? .attention : model.voiceState
+    }
     private var microphoneHint: String {
         if model.requestingAudio { return "Allow microphone access" }
-        if capturing { return "Listening…" }
-        if recognizing { return "Transcribing…" }
+        if capturing { return Self.captureInstruction(model) }
+        if recognizing { return "One moment…" }
+        if setupIncomplete { return "Open Settings to finish setup." }
+        if attention { return "Check Settings to continue." }
         if model.micEnabled { return "Mic on" }
         return "Hold Fn to speak"
-    }
-    private var captureHint: String {
-        if model.holdingToTalk { return model.busy ? "Release Fn to add to the queue" : "Release Fn to send" }
-        if model.tapListening || model.wordMode { return "Say ‘end command’ or press Fn to send" }
-        return model.continuousListening ? "Pause to send your next request" : "Pause when finished"
     }
     private func typeInstead() {
         showEditor = true
@@ -541,30 +636,35 @@ struct CommandBarView: View {
     }
     var body: some View {
         VStack(spacing: 0) {
-            if expanded {
-                if hasContent {
-                    ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if model.busy { working }
-                        if capturing || recognizing {
-                            if model.busy { Divider().overlay(Palette.line).padding(.vertical, 17) }
-                            capture
+            composition.frame(height: layout.header)
+            if hasExtension {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        if extendedWork { Text(model.detail).font(.system(size: 17, weight: .semibold)).textSelection(.enabled) }
+                        if extendedCapture {
+                            VStack(alignment: .leading, spacing: 8) {
+                                if model.busy {
+                                    Text(LocalizedStringKey(recognizing ? "Recognizing" : "Listening to your next request"))
+                                        .font(.system(size: 11)).foregroundStyle(Palette.muted)
+                                }
+                                Group {
+                                    if model.liveTranscript.isEmpty { Text(LocalizedStringKey(recognizing ? "One moment…" : "Go ahead, I'm listening.")) }
+                                    else { Text(model.liveTranscript) }
+                                }.font(.system(size: 18, weight: .semibold)).textSelection(.enabled)
+                                if model.busy {
+                                    Text(LocalizedStringKey(recognizing ? "Finishing your transcript" : Self.captureInstruction(model)))
+                                        .font(.system(size: 11)).foregroundStyle(Palette.muted)
+                                }
+                            }
                         }
-                        if showsAttention && !model.busy && !capturing && !recognizing { attentionCard }
-                        if hasAnswer {
-                            if showsAttention { Divider().overlay(Palette.line).padding(.vertical, 17) }
-                            AnswerView(model: model, showsDetails: $showDetails)
-                        }
-                    }.padding(24).frame(maxWidth: .infinity, alignment: .leading)
-                    }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                if showEditor {
-                    if hasContent { Rectangle().fill(Palette.line).frame(height: 1) }
-                    editor.padding(.horizontal, 24).padding(.vertical, 16)
-                }
-                Rectangle().fill(Palette.line).frame(height: 1)
+                        if extendedAnswer { AnswerView(model: model, showsDetails: $showDetails, showsHeader: attentionVisible, showsFooter: false) }
+                    }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 20)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            rail.frame(height: Self.railHeight - (expanded ? 1 : 0))
+            if extendedAnswer { answerFooter }
+            if showEditor {
+                editor.padding(.horizontal, 16).padding(.vertical, 13).frame(height: 106)
+            }
         }
         .frame(width: size.width, height: size.height)
         .background(Palette.panel, in: RoundedRectangle(cornerRadius: 18))
@@ -577,48 +677,146 @@ struct CommandBarView: View {
         .onChange(of: attentionIdentity) { _, _ in attentionCollapsed = false }
         .onExitCommand { editing = false; showEditor = false; releaseKeyboard() }
     }
-    private var working: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            if !model.transcript.isEmpty {
-                Text(model.transcript).font(.system(size: 12)).foregroundStyle(Palette.muted).lineLimit(2)
+    @ViewBuilder private var composition: some View {
+        if size.width < 320 {
+            VStack(spacing: 0) {
+                ConductorStateView(state: conductorState).frame(width: 140, height: 103)
+                primaryColumn.padding(.horizontal, 16)
             }
-            HStack(alignment: .top, spacing: 10) {
-                ConductorProgress().padding(.top, 5)
-                Text(model.detail).font(.system(size: 21, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
-            }
+        } else {
+            HStack(alignment: .bottom, spacing: 12) {
+                ConductorStateView(state: conductorState).frame(width: Self.artworkWidth(for: size.width), height: Self.artworkWidth(for: size.width) * 264 / 360)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                primaryColumn
+            }.padding(.horizontal, 12)
         }
     }
-    private var capture: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 7) {
-                Circle().fill(recognizing ? Palette.accent : Palette.danger).frame(width: 6, height: 6)
-                Text(recognizing ? "Transcribing your request" : model.busy ? "Listening to your next request" : "Listening")
-                    .font(.system(size: 12)).foregroundStyle(Palette.muted)
-            }
-            Text(model.liveTranscript.isEmpty ? (recognizing ? "One moment…" : "Go ahead, I'm listening.") : model.liveTranscript)
-                .font(.system(size: 21, weight: .semibold)).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
-            Text(LocalizedStringKey(recognizing ? "Finishing your transcript" : captureHint)).font(.system(size: 12)).foregroundStyle(Palette.muted)
-        }
-    }
-    private var attentionCard: some View {
+    private var primaryColumn: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                Label(model.requestingAudio ? "Allow microphone access" : setupIncomplete ? "Finish setup" : "Needs attention", systemImage: "exclamationmark.circle")
-                    .font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.danger)
-                Spacer()
-                Button { attentionCollapsed = true } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .semibold)).frame(width: 24, height: 24) }
-                    .buttonStyle(.plain).foregroundStyle(Palette.muted).accessibilityLabel("Dismiss attention message")
+            ScrollView {
+                primaryContent.frame(maxWidth: .infinity, alignment: .leading)
+            }.scrollIndicators(.hidden).frame(maxWidth: .infinity).frame(height: layout.message)
+            if model.queuedCount > 0 || (model.busy && model.shotsThisCommand > 0) {
+                HStack(spacing: 12) {
+                    if model.queuedCount > 0 { Text("\(model.queuedCount) queued").accessibilityLabel("Queued requests: \(model.queuedCount)") }
+                    if model.busy && model.shotsThisCommand > 0 {
+                        Label("\(model.shotsThisCommand)", systemImage: "camera").help("Screenshots sent to the brain for this command")
+                    }
+                }.font(.system(size: 10)).foregroundStyle(Palette.muted)
             }
-            Text(setupIncomplete ? "Open Settings to finish your connection and Mac permissions." : model.detail)
-                .font(.system(size: 13)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                if setupIncomplete {
-                    Button("Open Settings", action: openSettings).buttonStyle(ConductorButtonStyle(prominent: true))
-                } else {
-                    Button("Type instead") { typeInstead() }.buttonStyle(ConductorButtonStyle())
-                    Button("Settings…", action: openSettings).buttonStyle(.plain).foregroundStyle(Palette.muted).font(.system(size: 12))
+            if extendedAnswer {
+                if attentionVisible { attentionAction }
+            } else { controls() }
+        }.padding(.vertical, 14).frame(maxWidth: .infinity, alignment: .leading).frame(maxHeight: .infinity, alignment: .center)
+    }
+    @ViewBuilder private var primaryContent: some View {
+        if attentionVisible {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(LocalizedStringKey(model.requestingAudio ? "Allow microphone access" : setupIncomplete ? "Finish setup" : "Needs attention"))
+                        .font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.danger)
+                    Spacer(minLength: 0)
+                    Button { attentionCollapsed = true } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).frame(width: 24, height: 24) }
+                        .buttonStyle(.plain).foregroundStyle(Palette.muted).accessibilityLabel("Dismiss attention message")
+                }
+                Group {
+                    if setupIncomplete { Text(LocalizedStringKey(Self.setupMessage(model))) }
+                    else { Text(model.detail) }
+                }.font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+            }
+        } else if hasAnswer {
+            if !extendedAnswer {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(model.answerText).font(.system(size: 15)).lineSpacing(2).textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        closeAnswer
+                    }
+                    answerMetadata
+                }
+            } else {
+                HStack(alignment: .top, spacing: 8) {
+                    Group {
+                        if model.transcript.isEmpty { Text("Answer") }
+                        else { Text(model.transcript) }
+                    }.font(.system(size: 13, weight: .medium)).lineLimit(2)
+                    Spacer(minLength: 0)
+                    closeAnswer
                 }
             }
+        } else if model.busy || capturing || recognizing {
+            VStack(alignment: .leading, spacing: 14) {
+                if model.busy {
+                    VStack(alignment: .leading, spacing: 7) {
+                        if capturing {
+                            HStack(spacing: 6) {
+                                Circle().fill(Palette.danger).frame(width: 5, height: 5)
+                                Text("Listening to your next request").font(.system(size: 11)).foregroundStyle(Palette.muted)
+                            }
+                        }
+                        if !model.transcript.isEmpty { Text(model.transcript).font(.system(size: 11)).foregroundStyle(Palette.muted).lineLimit(2) }
+                        Group {
+                            if model.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { Text(LocalizedStringKey(Self.workFallback(model))) }
+                            else { Text(extendedWork ? model.phase : model.detail) }
+                        }.font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Palette.foreground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if (capturing || recognizing) && !model.busy {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !model.liveTranscript.isEmpty && !extendedCapture {
+                            Text(LocalizedStringKey(recognizing ? "Recognizing" : model.busy ? "Listening to your next request" : "Listening"))
+                                .font(.system(size: 11)).foregroundStyle(Palette.muted)
+                            Text(model.liveTranscript).font(.system(size: 17, weight: .semibold)).textSelection(.enabled)
+                        } else {
+                            Text(LocalizedStringKey(recognizing ? "Recognizing" : model.busy ? "Listening to your next request" : "Listening"))
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        Text(LocalizedStringKey(recognizing ? "One moment…" : Self.captureInstruction(model)))
+                            .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(conductorState.presentationLabel).font(.system(size: 18, weight: .semibold))
+                Text(LocalizedStringKey(microphoneHint)).font(.system(size: 12)).foregroundStyle(Palette.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                if attentionCollapsed && attention {
+                    Button("Open Settings", action: openSettings).buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.accent)
+                }
+            }
+        }
+    }
+    private var closeAnswer: some View {
+        Button { model.dismissAnswer() } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).frame(width: 24, height: 24) }
+            .buttonStyle(.plain).foregroundStyle(Palette.muted).accessibilityLabel("Close answer")
+    }
+    private var answerMetadata: some View {
+        HStack(spacing: 8) {
+            if !model.modelLabel.isEmpty {
+                Text(model.modelLabel).font(.system(size: 10, weight: .medium)).lineLimit(1)
+                    .foregroundStyle(model.modelLabel.contains("fallback") ? Palette.danger : Palette.muted)
+            }
+            Spacer(minLength: 0)
+            Button { showDetails.toggle() } label: {
+                HStack(spacing: 5) { Text("Details"); Image(systemName: showDetails ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .semibold)) }
+            }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize()
+        }
+    }
+    private var answerFooter: some View {
+        HStack(spacing: 16) {
+            answerMetadata
+            controls(includeAttentionAction: false).fixedSize(horizontal: true, vertical: false)
+        }.padding(.horizontal, 20).frame(height: 54)
+    }
+    @ViewBuilder private var attentionAction: some View {
+        if setupIncomplete {
+            Button("Open Settings", action: openSettings).buttonStyle(ConductorButtonStyle(prominent: true))
+        } else {
+            Button("Type instead") { typeInstead() }.buttonStyle(ConductorButtonStyle())
         }
     }
     private var editor: some View {
@@ -642,39 +840,29 @@ struct CommandBarView: View {
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(editing ? Palette.accent : Palette.line))
         }
     }
-    private var rail: some View {
-        HStack(spacing: 8) {
+    private func controls(includeAttentionAction: Bool = true) -> some View {
+        HStack(spacing: size.width < 380 ? 6 : 8) {
+            if attentionVisible && includeAttentionAction { attentionAction }
             Button {
                 editing = false
                 releaseKeyboard()
                 model.toggleListening()
             } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: capturing ? "waveform" : model.micEnabled ? "mic.fill" : "mic").font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(capturing || model.micEnabled ? Palette.danger : Palette.accent).frame(width: 22)
-                        .opacity(capturing ? 0.6 + min(1, max(0, model.level)) * 0.4 : 1)
-                    Text(LocalizedStringKey(microphoneHint)).font(.system(size: 12, weight: .medium)).lineLimit(1)
-                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle()).padding(.vertical, 12)
+                Image(systemName: capturing ? "waveform" : model.micEnabled ? "mic.fill" : "mic")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(capturing || model.micEnabled ? Palette.danger : Palette.accent)
+                    .opacity(capturing ? 0.6 + min(1, max(0, model.level)) * 0.4 : 1)
+                    .frame(width: 34, height: 34)
+                    .background(capturing || model.micEnabled ? Palette.danger.opacity(0.10) : Palette.raised, in: RoundedRectangle(cornerRadius: 9))
+                    .contentShape(RoundedRectangle(cornerRadius: 9))
             }.buttonStyle(.plain).accessibilityLabel(model.micEnabled ? "Turn mic off" : "Turn mic on")
                 .help("Click to toggle listening. Hold Fn or right Option to speak, or press Option-Space.")
-            if attention && attentionCollapsed && !model.busy {
-                Button(action: openSettings) {
-                    Label(setupIncomplete ? "Setup" : "Attention", systemImage: "exclamationmark.circle")
-                        .font(.system(size: 10, weight: .medium)).foregroundStyle(Palette.danger).fixedSize()
-                }.buttonStyle(.plain).help("Open Settings")
-            }
-            if model.busy && model.shotsThisCommand > 0 {
-                Label("\(model.shotsThisCommand)", systemImage: "camera").font(.system(size: 10)).foregroundStyle(Palette.muted)
-                    .help("Screenshots sent to the brain for this command").fixedSize()
-            }
-            if model.queuedCount > 0 {
-                Text("\(model.queuedCount) queued").font(.system(size: 10, weight: .medium)).foregroundStyle(Palette.muted)
-                    .fixedSize().accessibilityLabel("Queued requests: \(model.queuedCount)")
-            }
+            if !attentionVisible || !includeAttentionAction {
             Button { if showEditor { editing = false; showEditor = false; releaseKeyboard() } else { typeInstead() } } label: {
                 Image(systemName: "keyboard").font(.system(size: 15)).frame(width: 27, height: 30)
             }.buttonStyle(.plain).foregroundStyle(showEditor ? Palette.accent : Palette.muted)
                 .accessibilityLabel("Type a request").help("Type a request")
+            }
             Menu {
                 Text(model.brainEnabled ? model.brainChoice.name : "No brain")
                 Divider()
@@ -683,21 +871,24 @@ struct CommandBarView: View {
                         .disabled(choice.codex && CodexBrain.binary() == nil)
                 }
                 Divider()
+                Button("Type a request") { typeInstead() }
                 Button("Start new conversation") { model.newConversation() }
+                if model.agentDashboardAvailable { Button("Agent dashboard") { model.openAgentMap() } }
                 Button("Settings…", action: openSettings)
             } label: { Image(systemName: "ellipsis").font(.system(size: 16, weight: .semibold)).frame(width: 27, height: 30) }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .foregroundStyle(Palette.muted).accessibilityLabel("Brain model and settings")
+                .foregroundStyle(model.agentsOK ? Palette.muted : Palette.danger).accessibilityLabel("Brain model and settings")
                 .help(model.brainEnabled ? model.brainChoice.name : "No brain")
             if model.busy {
+                Spacer(minLength: 0)
                 Button { model.cancelCurrentTask() } label: {
-                    HStack(spacing: 6) { Image(systemName: "stop.fill").font(.system(size: 7)); Text("Stop").font(.system(size: 12)) }
+                    HStack(spacing: 6) { Image(systemName: "stop.fill").font(.system(size: 7)); Text("Stop").font(.system(size: 12)).fixedSize() }
                         .padding(.horizontal, 11).frame(height: 32).foregroundStyle(Palette.danger)
                         .background(Palette.danger.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Palette.danger.opacity(0.4)))
-                }.buttonStyle(.plain).accessibilityLabel("Stop task").help("Stop this task and clear queued requests")
+                }.buttonStyle(.plain).fixedSize(horizontal: true, vertical: false).accessibilityLabel("Stop task").help("Stop this task and clear queued requests")
             }
-        }.padding(.horizontal, 12)
+        }
     }
 }
 
@@ -705,15 +896,18 @@ struct CommandBarView: View {
 struct AnswerView: View {
     @ObservedObject var model: AppModel
     @Binding var showsDetails: Bool
+    let showsHeader: Bool
+    let showsFooter: Bool
     static let width: CGFloat = 600
     static let textFont = NSFont.systemFont(ofSize: 17)
     static let lineSpacing: CGFloat = 5
     static let horizontalPadding: CGFloat = 24
-    init(model: AppModel, showsDetails: Binding<Bool> = .constant(false)) {
-        self.model = model; _showsDetails = showsDetails
+    init(model: AppModel, showsDetails: Binding<Bool> = .constant(false), showsHeader: Bool = true, showsFooter: Bool = true) {
+        self.model = model; _showsDetails = showsDetails; self.showsHeader = showsHeader; self.showsFooter = showsFooter
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            if showsHeader {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("Answer").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.muted)
@@ -723,8 +917,10 @@ struct AnswerView: View {
                 Button { model.dismissAnswer() } label: { Image(systemName: "xmark").font(.system(size: 11, weight: .semibold)).frame(width: 24, height: 24) }
                     .buttonStyle(.plain).foregroundStyle(Palette.muted).accessibilityLabel("Close answer")
             }
+            }
             Text(model.answerText).font(Font(Self.textFont)).lineSpacing(Self.lineSpacing).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+            if showsFooter {
             HStack {
                 if !model.modelLabel.isEmpty {
                     Label(model.modelLabel, systemImage: "brain.head.profile").font(.system(size: 11, weight: .medium))
@@ -735,8 +931,10 @@ struct AnswerView: View {
                     HStack(spacing: 5) { Text("Details"); Image(systemName: showsDetails ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .semibold)) }
                 }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Palette.muted)
             }
+            }
             if showsDetails {
                 Divider().overlay(Palette.line)
+                if model.limitShare != nil { LimitShareView(model: model) }
                 if !model.usageLine.isEmpty {
                     Text(model.usageLine + "\n" + model.dayLine).font(.system(size: 12)).foregroundStyle(Palette.muted).textSelection(.enabled)
                 }
@@ -803,6 +1001,39 @@ struct ContextBar: View {
                 }.frame(height: 5)
             }
             Text(model.contextLabel).font(.system(size: 12, weight: .medium)).foregroundStyle(model.contextFraction >= 0.85 ? color : Palette.muted)
+        }
+    }
+}
+
+struct LimitShareView: View {
+    @ObservedObject var model: AppModel
+    private func number(_ value: Double) -> String {
+        String(format: value >= 10 ? "%.0f" : value >= 1 ? "%.1f" : value >= 0.1 ? "%.2f" : "%.3f", value)
+    }
+    var body: some View {
+        if let share = model.limitShare {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(format: NSLocalizedString("This command: ≈%@%% of the five-hour limit", comment: "Estimated usage"), number(share.commandPercent)))
+                    .font(.system(size: 12, weight: .semibold))
+                GeometryReader { geometry in
+                    let width = geometry.size.width
+                    let used = min(1, share.fiveHour / 100), app = min(used, share.jevPercent / 100), command = min(app, share.commandPercent / 100)
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.08))
+                        Capsule().fill(Color.white.opacity(0.28)).frame(width: width * used)
+                        Capsule().fill(Palette.accent).frame(width: max(0, width * app))
+                        Rectangle().fill(Color.white).frame(width: max(0, width * command)).offset(x: max(0, width * (app - command)))
+                    }
+                }.frame(height: 7)
+                Text(String(format: NSLocalizedString("All sessions: %@%%. Conductor: ≈%@%%.", comment: "Estimated usage"), number(share.fiveHour), number(share.jevPercent))
+                     + (share.resets.map { " " + String(format: NSLocalizedString("Resets at %@.", comment: "Usage reset"), DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .short)) } ?? "")
+                     + (share.week.map { " " + String(format: NSLocalizedString("Weekly usage: %@%%.", comment: "Weekly usage"), number($0)) } ?? ""))
+                    .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+                Text("Estimated from local session costs. Account use on other devices can affect this estimate.")
+                    .font(.system(size: 10)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+            }
+        } else if !model.usageLine.isEmpty {
+            Text(model.usageLine).font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

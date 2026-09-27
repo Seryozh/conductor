@@ -28,11 +28,11 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
             .compactMap { $0 }
         return paths.first { FileManager.default.isExecutableFile(atPath: $0) }.map { URL(fileURLWithPath: $0) }
     }
-    static let instructions = ClaudeBrain.prompt + """
+    static var instructions: String { ClaudeBrain.runtimePrompt + """
 
 
-    TOOLS IN THIS RUNTIME: you run inside the Codex CLI with full access to the user's Mac. The shell can read files and run commands. When a request needs a file or local state, inspect it yourself before answering. Do not claim that a file or screen is inaccessible when the available tools can read it.
-    """
+    TOOLS IN THIS RUNTIME: you run inside the Codex CLI with full access to the user's Mac. The shell can read files and run commands. When a request needs a file or local state, inspect it yourself before answering. Do not claim that a file or screen is inaccessible when the available tools can read it. Where an instruction names Read, Glob, Grep or Bash, use the shell; use view_image to inspect a local picture. Prefer the app's returned action fields for operations it can perform directly. When shell tools are needed, batch independent reads and keep the result focused on the user's request.
+    """ }
     /// A TOML basic string for `codex -c key=value`.
     static func tomlString(_ text: String) -> String {
         var out = "\""
@@ -65,6 +65,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
     private(set) var turns = 0
     private(set) var lastUsage = BrainUsage()
     private(set) var fixedTokens = 0
+    private var threadInput = 0, threadOutput = 0
     var resetNote: String?
 
     func warm() {}   // nothing stays running between commands
@@ -73,7 +74,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         guard let binary = Self.binary() else { throw VoiceError.message("Codex CLI was not found. Install it, sign in, or choose its executable in Settings.") }
         let wanted = choice
         let (resume, note) = lock.withLock { () -> (String?, String?) in
-            if threadModel != wanted.model { thread = nil; threadModel = wanted.model; turns = 0; fixedTokens = 0 }
+            if threadModel != wanted.model { thread = nil; threadModel = wanted.model; turns = 0; fixedTokens = 0; threadInput = 0; threadOutput = 0 }
             let resume = thread
             let note = resetNote
             resetNote = nil
@@ -97,16 +98,22 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
 
         let outcome = try await run(binary, args, timeout: timeout)
         lock.withLock {
-            if resume == nil, let started = outcome.thread { thread = started }
+            if resume == nil, let started = outcome.thread { thread = started; threadInput = 0; threadOutput = 0 }
             turns += 1
             var usage = BrainUsage()
-            usage.inputTokens = outcome.input; usage.outputTokens = outcome.output
-            usage.contextUsed = outcome.input / max(1, outcome.tools.count + 1)   // roughly the last model call
-            usage.contextWindow = 272_000
+            // Resumed runs report running totals. Count only this command's delta.
+            usage.inputTokens = max(0, outcome.input - threadInput)
+            usage.outputTokens = max(0, outcome.output - threadOutput)
+            threadInput = outcome.input; threadOutput = outcome.output
+            if let file = Self.rollout(thread: thread), let size = Self.contextSize(file) {
+                usage.contextUsed = size.last; usage.contextWindow = size.window
+                if fixedTokens == 0 { fixedTokens = max(0, (Self.firstCallInput(file) ?? size.last) - 2500) }
+            } else {
+                usage.contextUsed = lastUsage.contextUsed; usage.contextWindow = lastUsage.contextWindow
+            }
             usage.model = wanted.model
             usage.sevenDay = Self.weekUsed(thread: thread)
             lastUsage = usage
-            if fixedTokens == 0 { fixedTokens = max(0, usage.contextUsed - 2500) }
         }
         var reply = try ClaudeBrain.parse(outcome.answer)
         reply.toolActions = outcome.tools   // work the brain did itself is not "said but not done"
@@ -178,29 +185,64 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         }
         let (result, problem) = parseLock.withLock { (outcome, failure) }
         if task.terminationReason == .uncaughtSignal, problem == nil { throw CancellationError() }
-        if let problem, result.answer.isEmpty { throw VoiceError.message("Codex: " + problem) }
+        if let problem, result.answer.isEmpty {
+            if !result.tools.isEmpty { DebugLog.write("CODEX FAILED after \(result.tools.count) commands: " + result.tools.map { String($0.prefix(120)) }.joined(separator: " | ")) }
+            throw VoiceError.message("Codex: " + problem)
+        }
         guard !result.answer.isEmpty else { throw VoiceError.message("Codex returned no answer.") }
         return result
     }
 
-    /// The ChatGPT plan's weekly Codex usage (0...1), from the thread's own log.
-    static func weekUsed(thread: String?) -> Double? {
+    /// The thread's own log, where Codex records every model call.
+    static func rollout(thread: String?) -> URL? {
         guard let thread else { return nil }
-        let sessions = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/sessions")
+        let configured = ProcessInfo.processInfo.environment["CODEX_HOME"].flatMap { $0.isEmpty ? nil : $0 }
+        let home = configured.map { URL(fileURLWithPath: $0, isDirectory: true) }
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex", isDirectory: true)
+        let sessions = home.appendingPathComponent("sessions", isDirectory: true)
         let day = DateFormatter(); day.dateFormat = "yyyy/MM/dd"
         for date in [Date(), Date().addingTimeInterval(-86400)] {
             let folder = sessions.appendingPathComponent(day.string(from: date))
-            guard let name = (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.first(where: { $0.contains(thread) }),
-                  let handle = try? FileHandle(forReadingFrom: folder.appendingPathComponent(name)) else { continue }
-            defer { try? handle.close() }
-            let size = (try? handle.seekToEnd()) ?? 0
-            try? handle.seek(toOffset: size > 200_000 ? size - 200_000 : 0)
-            let tail = String(decoding: handle.readDataToEndOfFile(), as: UTF8.self)
-            guard let range = tail.range(of: "\"used_percent\":", options: .backwards) else { return nil }
-            let number = tail[range.upperBound...].prefix { $0.isNumber || $0 == "." }
-            return Double(number).map { $0 / 100 }
+            if let name = (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.first(where: { $0.contains(thread) }) { return folder.appendingPathComponent(name) }
         }
         return nil
+    }
+    private static func tail(_ file: URL, _ bytes: UInt64) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: file) else { return nil }
+        defer { try? handle.close() }
+        let size = (try? handle.seekToEnd()) ?? 0
+        try? handle.seek(toOffset: size > bytes ? size - bytes : 0)
+        return String(decoding: handle.readDataToEndOfFile(), as: UTF8.self)
+    }
+    /// The last model call's input (the real conversation size) and the context window.
+    static func contextSize(_ file: URL) -> (last: Int, window: Int)? {
+        guard let text = tail(file, 400_000) else { return nil }
+        for line in text.split(separator: "\n").reversed() where line.contains("\"token_count\"") && line.contains("last_token_usage") {
+            guard let info = tokenInfo(line), let last = (info["last_token_usage"] as? [String: Any])?["input_tokens"] as? Int else { continue }
+            return (last, info["model_context_window"] as? Int ?? 258_400)
+        }
+        return nil
+    }
+    /// The first model call of the thread: instruction, tools and the first message.
+    static func firstCallInput(_ file: URL) -> Int? {
+        guard let handle = try? FileHandle(forReadingFrom: file) else { return nil }
+        defer { try? handle.close() }
+        let head = String(decoding: handle.readData(ofLength: 3_000_000), as: UTF8.self)
+        for line in head.split(separator: "\n") where line.contains("\"token_count\"") && line.contains("last_token_usage") {
+            if let info = tokenInfo(line), let first = (info["last_token_usage"] as? [String: Any])?["input_tokens"] as? Int { return first }
+        }
+        return nil
+    }
+    private static func tokenInfo(_ line: Substring) -> [String: Any]? {
+        guard let event = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { return nil }
+        return (event["payload"] as? [String: Any])?["info"] as? [String: Any]
+    }
+    /// The ChatGPT plan's weekly Codex usage (0...1), from the thread's own log.
+    static func weekUsed(thread: String?) -> Double? {
+        guard let file = rollout(thread: thread), let text = tail(file, 200_000),
+              let range = text.range(of: "\"used_percent\":", options: .backwards) else { return nil }
+        let number = text[range.upperBound...].prefix { $0.isNumber || $0 == "." }
+        return Double(number).map { $0 / 100 }
     }
 
     func interrupt() {
@@ -211,7 +253,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
     /// A new conversation starts a fresh Codex thread; the old one is archived, not deleted.
     func stop() {
         interrupt()
-        lock.lock(); let old = thread; thread = nil; threadModel = nil; turns = 0; fixedTokens = 0; lastUsage.contextUsed = 0; lock.unlock()
+        lock.lock(); let old = thread; thread = nil; threadModel = nil; turns = 0; fixedTokens = 0; threadInput = 0; threadOutput = 0; lastUsage.contextUsed = 0; lock.unlock()
         if let old, let binary = Self.binary() {
             let archive = Process(); archive.executableURL = binary; archive.arguments = ["archive", old]
             archive.environment = Self.subscriptionEnvironment()

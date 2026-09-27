@@ -46,6 +46,7 @@ final class SpeechEngine {
     var onLevel: ((Double) -> Void)?
     var onFinished: ((String) -> Void)?
     var onError: ((String) -> Void)?
+    var onDiagnostic: ((String) -> Void)?
     /// Word mode: text discarded by an explicit discard phrase.
     var onDiscarded: ((String) -> Void)?
     private let engine = AVAudioEngine()
@@ -70,10 +71,13 @@ final class SpeechEngine {
     private var hasTap = false
     private var hints: [String] = []
     private var consecutiveErrors = 0
+    private var replayTask: Task<Void, Never>?
+    private var replaying = false
     /// Useful common names and command phrases are added before installed app names.
     static var vocabulary: [String] {
         ["Claude", "Claude Code", "Codex", "Opus", "Sonnet", "Jev", "Conductor", "ChatGPT", "Chrome", "Google Chrome",
          "Safari", "Finder", "Notes", "Calendar", "Messages", "GitHub", "YouTube", "TypeSafe",
+         "Astra", "Luna", "Terra", "Muse", "Jev Voice", "Hermes", "Roblox", "Roblox Studio", "Obsidian", "Freeform", "Telegram", "LinkedIn", "Meshy", "NanoGPT",
          "end command", "cancel task", "stop listening"] + VoiceLocalization.words("speech.vocabulary")
     }
     /// Hold-to-talk: the key release ends the request, not a pause in speech.
@@ -132,7 +136,7 @@ final class SpeechEngine {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
             guard let self, self.active, !self.ending, !self.suppressed else { return }
-            guard self.engine.isRunning else {
+            guard self.replaying || self.engine.isRunning else {
                 self.cancel(); self.onError?("The audio device stopped or changed. Turn the mic on to reconnect."); return
             }
             let now = Date().timeIntervalSinceReferenceDate
@@ -152,10 +156,53 @@ final class SpeechEngine {
             }
         }
     }
+    /// Feed a real recording at its original pace through the exact same
+    /// recognizer, audio-level endpoint logic, request rotation and callbacks.
+    /// This diagnostic mode never mixes the recording with the live microphone.
+    func replay(_ url: URL, finished: @escaping () -> Void) throws {
+        guard speechGranted, isLocalAvailable else { throw VoiceError.message("On-device speech recognition needs permission.") }
+        cancel()
+        let file = try AVAudioFile(forReading: url)
+        active = true; replaying = true
+        hints = Self.vocabulary
+        beginRequest(); startTimer()
+        replayTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let start = Date()
+                while file.framePosition < file.length {
+                    try Task.checkCancellation()
+                    guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 1024) else { throw VoiceError.message("Cannot allocate audio buffer.") }
+                    try file.read(into: buffer)
+                    self.sink.append(buffer)
+                    if let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 {
+                        var sum: Float = 0
+                        for index in 0..<Int(buffer.frameLength) { sum += samples[index] * samples[index] }
+                        let rms = Double(sqrt(sum / Float(buffer.frameLength)))
+                        self.onLevel?(min(1, rms * 12))
+                        if rms > 0.012 {
+                            self.utterance.voice(at: Date().timeIntervalSinceReferenceDate)
+                            // New audio is queued for the next utterance after an endpoint.
+                        }
+                    }
+                    let due = Double(file.framePosition) / file.processingFormat.sampleRate
+                    let delay = due - Date().timeIntervalSince(start)
+                    if delay > 0 { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
+                }
+                try await Task.sleep(nanoseconds: 3_200_000_000)
+                self.timer?.invalidate(); self.timer = nil
+                self.active = false; self.replaying = false
+                self.generation += 1; self.sink.clear(); self.task?.cancel(); self.task = nil
+                self.onLevel?(0); finished()
+            } catch is CancellationError { }
+            catch { self.onError?(error.localizedDescription) }
+        }
+    }
     private func beginRequest() {
         guard active, !suppressed, let recognizer else { return }
         generation += 1
         let token = generation
+        onDiagnostic?("begin request \(generation)")
         ending = false; submitAtEnd = false; requestStartedAt = Date()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
@@ -171,12 +218,14 @@ final class SpeechEngine {
                     let transcription = result.bestTranscription
                     let start = transcription.segments.first?.timestamp
                     let end = transcription.segments.last.map { $0.timestamp + $0.duration }
+                    self.onDiagnostic?("span \(token): \(start ?? -1)...\(end ?? -1)")
                     self.utterance.recognize(transcription.formattedString, start: start, end: end, at: Date().timeIntervalSinceReferenceDate)
                     if !self.utterance.text.isEmpty { self.consecutiveErrors = 0; self.recorder.markSpeaking() }
                     self.onTranscript?(self.utterance.text)
-                    if result.isFinal { self.completeRequest(token: token) }
+                    if result.isFinal { self.onDiagnostic?("final \(token): \(result.bestTranscription.formattedString)"); self.completeRequest(token: token) }
                 } else if let error, !self.ending {
                     let nsError = error as NSError
+                    self.onDiagnostic?("error \(token): \(nsError.domain)/\(nsError.code); buffered: \(self.utterance.text)")
                     if nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 1110 {
                         self.completeRequest(token: token); return
                     }
@@ -199,6 +248,7 @@ final class SpeechEngine {
     }
     private func finishRequest(submit: Bool, grace: TimeInterval = 0.3) {
         guard active, !ending, !suppressed else { return }
+        onDiagnostic?("finish request \(generation), submit=\(submit), text=\(utterance.text)")
         ending = true; submitAtEnd = submit
         sink.betweenUtterances(); request?.endAudio()
         let token = generation
@@ -231,6 +281,7 @@ final class SpeechEngine {
                 var buffer = UtteranceBuffer(); buffer.sendWords = sendWords; buffer.update(text, at: 0)
                 if !buffer.command.isEmpty { final = buffer.command; DebugLog.write("HEARD by Apple: " + apple) }
             }
+            self?.onDiagnostic?("submit: \(final)")
             self?.onFinished?(final)
         }
     }
@@ -244,6 +295,7 @@ final class SpeechEngine {
         if active && !value { beginRequest() }
     }
     func cancel() {
+        replayTask?.cancel(); replayTask = nil; replaying = false
         sessionGeneration += 1; generation += 1
         active = false; ending = false; suppressed = false; utterance.reset(); recorder.reset()
         timer?.invalidate(); timer = nil; sink.clear(); engine.stop()

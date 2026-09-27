@@ -217,3 +217,42 @@
 "This call selected or checked an option. No computer action result is attached to this call." = "This call selected or checked an option. No computer action result is attached to this call.";
 "Waiting for Jev…" = "Waiting for Jev…";
 "No response body was received." = "No response body was received.";
+
+"Check Settings to continue." = "Check Settings to continue.";
+
+"Open Settings to finish setup." = "Open Settings to finish setup.";
+
+"Acting" = "Acting";
+
+"Ready" = "Ready";
+
+"Connect Jev and allow Mac access." = "Connect Jev and allow Mac access.";
+
+"Checking" = "Checking";
+
+"Thinking" = "Thinking";
+
+"Allow Mac access in Settings." = "Allow Mac access in Settings.";
+
+"Recognizing" = "Recognizing";
+
+"Connect Jev in Settings." = "Connect Jev in Settings.";
+
+"commands.visualWords" = "screen|picture|photo|image|see|look|draw|color|chart|diagram|screenshot";
+
+"Local agents" = "Local agents";
+"Agent dashboard" = "Agent dashboard";
+"Refresh agent status" = "Refresh agent status";
+"This command: ≈%@%% of the five-hour limit" = "This command: ≈%@%% of the five-hour limit";
+"All sessions: %@%%. Conductor: ≈%@%%." = "All sessions: %@%%. Conductor: ≈%@%%.";
+"Resets at %@." = "Resets at %@.";
+"Weekly usage: %@%%." = "Weekly usage: %@%%.";
+"Estimated from local session costs. Account use on other devices can affect this estimate." = "Estimated from local session costs. Account use on other devices can affect this estimate.";
+"No local agent dashboard is configured." = "No local agent dashboard is configured.";
+"Could not refresh the local agent dashboard." = "Could not refresh the local agent dashboard.";
+"The configured local agent dashboard could not be opened." = "The configured local agent dashboard could not be opened.";
+"Could not read the configured agent status." = "Could not read the configured agent status.";
+"Check a recording…" = "Check a recording…";
+"Run commands from a recording…" = "Run commands from a recording…";
+"Run commands" = "Run commands";
+"Check speech" = "Check speech";

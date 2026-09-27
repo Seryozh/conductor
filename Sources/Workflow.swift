@@ -11,7 +11,8 @@ enum VoiceControl: Equatable {
         Set(["please", "hey", "okay", "jev"] + VoiceLocalization.words("commands.leadIns"))
     }
     private static var resetPhrases: [String] {
-        ["reset", "start over"] + VoiceLocalization.words("commands.reset")
+        ["reset", "start over", "clean up your context", "clean your context", "clear your context", "clear context", "clear your memory", "clear memory",
+         "new conversation", "reset context", "reset your context", "fresh start"] + VoiceLocalization.words("commands.reset")
     }
 
     static func modelSwitch(_ words: [String]) -> VoiceControl? {

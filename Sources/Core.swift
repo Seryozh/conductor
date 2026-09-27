@@ -7,14 +7,37 @@ enum VoiceError: LocalizedError {
     var errorDescription: String? { switch self { case .message(let message), .verification(let message), .billing(let message), .transient(let message): return message } }
 }
 
-enum JevProvider: Equatable {
-    case typeSafe
+enum JevProvider: String {
+    case openRouter, typeSafe
     static func detect(key: String) -> JevProvider? {
-        key.trimmingCharacters(in: .whitespacesAndNewlines).count >= 24 ? .typeSafe : nil
+        let clean = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.hasPrefix("sk-or-") { return .openRouter }
+        if clean.hasPrefix("apikey_") || (clean.count >= 24 && !clean.contains(where: \.isWhitespace)) { return .typeSafe }
+        return nil
     }
-    var name: String { "TypeSafe" }
-    var endpoint: URL { URL(string: "https://api.typesafe.ai/v1/systemone")! }
-    var model: String { "jev-latest" }
+    var name: String { self == .openRouter ? "OpenRouter" : "TypeSafe" }
+    var endpoint: URL {
+        self == .openRouter ? URL(string: "https://openrouter.ai/api/alpha/decisions")! : URL(string: "https://api.typesafe.ai/v1/systemone")!
+    }
+    var model: String { self == .openRouter ? "~typesafe/jev-latest" : "jev-latest" }
+}
+
+enum OpenRouterBilling {
+    static let creditsURL = URL(string: "https://openrouter.ai/settings/credits")!
+    static let keysURL = URL(string: "https://openrouter.ai/settings/keys")!
+    static func message(for data: Data) -> String {
+        let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let error = body?["error"] as? [String: Any]
+        let metadata = error?["metadata"] as? [String: Any]
+        switch metadata?["limit_source"] as? String {
+        case "openrouter_key_limit":
+            return "This API key reached its OpenRouter spending limit. Increase its limit in OpenRouter, then check the connection and repeat your request."
+        case "openrouter_in_flight_budget":
+            return "OpenRouter's temporary spending budget is busy. Wait a moment, then check the connection and repeat your request."
+        default:
+            return "OpenRouter has insufficient credits for this API key's account. Add credits to that account, then check the connection and repeat your request."
+        }
+    }
 }
 
 enum KeyStore {
@@ -34,7 +57,7 @@ enum KeyStore {
     }
     static func save(_ key: String) throws {
         let clean = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard JevProvider.detect(key: clean) != nil, !clean.contains(where: \.isWhitespace) else { throw VoiceError.message("Enter a TypeSafe API key from console.typesafe.ai.") }
+        guard JevProvider.detect(key: clean) != nil, !clean.contains(where: \.isWhitespace) else { throw VoiceError.message("Enter a TypeSafe or OpenRouter API key.") }
         let context = LAContext()
         context.interactionNotAllowed = true
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
@@ -117,9 +140,23 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     var onActivity: ((JevCallRecord) -> Void)?
     var activityStage = "Decision"
     func accountStatus(key: String) async throws -> [String: Any] {
-        let result = try await checkConnection(key: key)
-        guard result.actionID == "ready" else { throw VoiceError.message("TypeSafe could not verify this API key.") }
-        return ["provider": "typesafe"]
+        if JevProvider.detect(key: key) == .typeSafe {
+            // TypeSafe has no key-info endpoint; a connection check verifies the key.
+            let result = try await checkConnection(key: key)
+            guard result.actionID == "ready" else { throw VoiceError.message("TypeSafe could not verify this API key.") }
+            return ["provider": "typesafe"]
+        }
+        var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/key")!)
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw VoiceError.message("OpenRouter could not verify this API key.")
+        }
+        let body = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let account = body?["data"] as? [String: Any] ?? [:]
+        // Exclude key labels, user IDs and organization IDs from diagnostics.
+        let fields: Set<String> = ["limit", "limit_remaining", "limit_reset", "usage", "usage_daily", "usage_weekly", "usage_monthly", "is_free_tier", "expires_at", "is_management_key"]
+        return account.filter { fields.contains($0.key) }
     }
     func checkConnection(key: String) async throws -> Decision {
         try await choose(transcript: "Select ready.", context: "Connection check only. No computer actions.",
@@ -163,7 +200,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
         try Task.checkCancellation()
         guard remainingCalls > 0 else { throw VoiceError.message("Decision limit reached before completion.") }
         remainingCalls -= 1
-        let provider = JevProvider.typeSafe
+        let provider = JevProvider.detect(key: key) ?? .typeSafe
         let payload: [String: Any] = ["model": provider.model, "state": state, "questions": questions.mapValues {
             ["type": "choice", "instructions": $0.instructions, "criteria": $0.criteria] as [String: Any]
         }]
@@ -201,7 +238,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
 
             switch http.statusCode {
             case 401: throw VoiceError.message("\(provider.name) rejected the API key. Update it in Setup.")
-            case 402: throw VoiceError.billing("TypeSafe reported a billing problem for this API key. Check your TypeSafe account, then check the connection and repeat your request.")
+            case 402: throw VoiceError.billing(provider == .openRouter ? OpenRouterBilling.message(for: data) : "TypeSafe reported a billing problem for this API key. Check your TypeSafe account, then check the connection and repeat your request.")
             case 429, 500, 502, 503, 504: throw VoiceError.transient("\(provider.name) is temporarily unavailable (HTTP \(http.statusCode)).")
             default: throw VoiceError.message("\(provider.name) returned HTTP \(http.statusCode). No action was taken.")
             }
