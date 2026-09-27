@@ -27,11 +27,18 @@ jobs:
           xcrun swift --version
       - name: Build unsigned app
         run: bash build.sh
+      - name: Test command handling and action catalogue
+        run: "'dist/Conductor.app/Contents/MacOS/Conductor' --self-test"
+      - name: Test API handling with local HTTP fixtures
+        run: "'dist/Conductor.app/Contents/MacOS/Conductor' --activity-test"
       - name: Package app
-        run: ditto -c -k --sequesterRsrc --keepParent 'dist/Conductor.app' 'dist/Conductor-macos-arm64.zip'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent 'dist/Conductor.app' 'dist/Conductor-macos-arm64.zip'
+          unzip -t 'dist/Conductor-macos-arm64.zip'
       - name: Upload archive to the workflow run
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: conductor-${{ github.ref_name }}-macos-arm64
           path: dist/Conductor-macos-arm64.zip
           if-no-files-found: error
+          archive: false

@@ -68,7 +68,7 @@ open 'dist/Conductor.app'
 
 The build uses Apple frameworks and Swift. It does not need a package manager or third-party Swift packages. It creates an unsigned app.
 
-In Settings, choose the CLI you signed in to and enter the TypeSafe API key under **Jev action selector**. If Conductor cannot find your CLI, set its executable path under **CLI and local speech paths**. Apple Speech works by default. Whisper is optional.
+In Settings → **Connections**, choose the CLI you signed in to and enter the TypeSafe API key under **Jev action selector**. If Conductor cannot find your CLI, set its executable path in **Advanced → CLI and local speech paths**. Apple Speech works by default. Whisper is optional.
 
 ### 4. Set up local Whisper (optional)
 
@@ -83,11 +83,11 @@ cmake --build build -j --config Release
 printf '%s\n' "$PWD/build/bin/whisper-server" "$PWD/models/ggml-large-v3-turbo-q5_0.bin"
 ```
 
-The last command prints two absolute paths. In Conductor Settings → **CLI and local speech paths**, paste the first into the server field and the second into the model field. Turn on **Use local Whisper for final transcription**. The model is about 547 MiB; Whisper runs on your Mac and does not need a Whisper API key. See the [whisper.cpp build guide](https://github.com/ggml-org/whisper.cpp#quick-start) and [model list](https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md).
+The last command prints two absolute paths. In Conductor Settings → **Advanced → CLI and local speech paths**, paste the first into the server field and the second into the model field. Turn on **Use local Whisper for final transcription**. The model is about 547 MiB; Whisper runs on your Mac and does not need a Whisper API key. See the [whisper.cpp build guide](https://github.com/ggml-org/whisper.cpp#quick-start) and [model list](https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md).
 
 ### 5. Grant macOS permissions
 
-Use the buttons in **Settings → macOS permissions** for Microphone, Speech Recognition, Accessibility, and Screen Recording. macOS may ask for Automation access the first time Conductor controls another app. These system permissions still apply when the CLI is running with its approval checks bypassed.
+Use the buttons in **Settings → Access → macOS permissions** for Microphone, Speech Recognition, Accessibility, and Screen Recording. macOS may ask for Automation access the first time Conductor controls another app. These system permissions still apply when the CLI is running with its approval checks bypassed.
 
 ## How it works
 

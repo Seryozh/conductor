@@ -10,7 +10,7 @@ Record a 30–40 second screen capture with your own voice after the scratch app
 | 3–12 s | Finish the request and show Calculator produce 486. | Continue the same spoken request through the app. |
 | 12–22 s | Show Notes open and the new note appear with the result. Keep the actual app window visible. | Voiceover: “The answer is in Notes, and Calculator is still open.” |
 | 22–28 s | Turn the mic on, ask Conductor to place Calculator on the left and Notes on the right, then show both windows. | Say the arrangement request through Conductor. |
-| 28–38 s | Say, “Wait 20 seconds before replying. Do not change anything.” Turn the mic off, open Settings at Full access and privacy, then click Stop while the request is still running. | Voiceover: “The CLI can run commands, use apps, and read or change files available to this account. I can stop it here, and macOS privacy permissions still apply.” |
+| 28–38 s | Say, “Wait 20 seconds before replying. Do not change anything.” Turn the mic off, open Settings → Advanced → Full access and privacy, then click Stop while the request is still running. | Voiceover: “The CLI can run commands, use apps, and read or change files available to this account. I can stop it here, and macOS privacy permissions still apply.” |
 
 The four moments are the cross-app request, the new note, side-by-side windows, and the visible Stop button. Add the narration as a separate voiceover after the screen capture so it is not sent as another command. Keep the cursor visible when it explains what happened. Do not speed up the app response. If a task fails or the recording does not show the result, record it again instead of narrating over a miss.
 

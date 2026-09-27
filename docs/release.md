@@ -6,7 +6,7 @@ The build script creates an unsigned Apple silicon app by default:
 CONDUCTOR_OUTPUT_DIR=/tmp/conductor-build bash build.sh
 ```
 
-The `v*` tag workflow builds the same app on an Apple silicon macOS runner and uploads `Conductor-macos-arm64.zip` as a workflow artifact. It does not create a GitHub Release, publish a repository, or notarize the app.
+The `v*` tag workflow builds the same app on an Apple silicon macOS runner, runs the local command and API-fixture checks, verifies the ZIP, and uploads `Conductor-macos-arm64.zip` as a workflow artifact. It does not create a GitHub Release, publish a repository, or notarize the app. GitHub requires sign-in to download workflow artifacts, and they expire. Attach the reviewed ZIP to a GitHub Release when you decide to provide a public download.
 
 ## Notarization
 
