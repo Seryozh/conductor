@@ -8,6 +8,18 @@ import Foundation
 /// its shell tool (replacing them left GPT unable to read a file); Jev's instruction goes in as
 /// developer instructions.
 final class CodexBrain: @unchecked Sendable, BrainPlanner {
+    /// Use the CLI's signed-in ChatGPT account, not provider keys inherited from
+    /// the app's launcher or a terminal session.
+    static func subscriptionEnvironment(_ source: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
+        source.filter { key, _ in
+            let name = key.uppercased()
+            // CODEX_HOME may contain the CLI's signed-in account. Keep that
+            // location while dropping inherited provider credential overrides.
+            return name == "CODEX_HOME" || (!name.hasPrefix("OPENAI_") && !name.hasPrefix("AZURE_OPENAI_")
+                && !name.hasPrefix("CODEX_") && !name.hasPrefix("CHATGPT_"))
+        }
+    }
+
     static func binary() -> URL? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let configured = UserDefaults.standard.string(forKey: "codexCLIPath")
@@ -107,6 +119,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         let task = Process()
         task.executableURL = binary
         task.arguments = args
+        task.environment = Self.subscriptionEnvironment()
         task.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
         task.standardInput = FileHandle.nullDevice   // Codex waits for extra stdin input otherwise
         let stdout = Pipe(); task.standardOutput = stdout; task.standardError = FileHandle.nullDevice
@@ -201,6 +214,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         lock.lock(); let old = thread; thread = nil; threadModel = nil; turns = 0; fixedTokens = 0; lastUsage.contextUsed = 0; lock.unlock()
         if let old, let binary = Self.binary() {
             let archive = Process(); archive.executableURL = binary; archive.arguments = ["archive", old]
+            archive.environment = Self.subscriptionEnvironment()
             archive.standardInput = FileHandle.nullDevice; archive.standardOutput = FileHandle.nullDevice; archive.standardError = FileHandle.nullDevice
             try? archive.run()
         }

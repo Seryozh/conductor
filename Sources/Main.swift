@@ -252,7 +252,18 @@ final class CommandBarPanel: NSPanel {
         // Whisper through the app's own code path: --whisper-test file.wav (16 kHz mono 16-bit).
         if let flag = CommandLine.arguments.firstIndex(of: "--whisper-test"), CommandLine.arguments.count > flag + 1,
            let wav = FileManager.default.contents(atPath: CommandLine.arguments[flag + 1]), wav.count > 44 {
-            Task { print(await LocalWhisper.shared.transcribe(wav.subdata(in: 44..<wav.count), language: "ru") ?? "NO ANSWER"); exit(0) }
+            guard LocalWhisper.shared.enabled && LocalWhisper.shared.installed else {
+                print("Whisper is off or its server and model paths are not set in Settings."); exit(1)
+            }
+            LocalWhisper.shared.start()
+            Task {
+                guard await LocalWhisper.shared.waitUntilReady(timeout: 30) else {
+                    LocalWhisper.shared.stop(); print("Whisper server did not start."); exit(1)
+                }
+                let result = await LocalWhisper.shared.transcribe(wav.subdata(in: 44..<wav.count), language: "ru")
+                LocalWhisper.shared.stop()
+                print(result ?? "NO ANSWER"); exit(result == nil ? 1 : 0)
+            }
             RunLoop.main.add(Timer(timeInterval: 60, repeats: true) { _ in }, forMode: .default); CFRunLoopRun(); return
         }
         if let flag = CommandLine.arguments.firstIndex(where: { $0 == "--close-apps" || $0 == "--close-apps-except" }), CommandLine.arguments.count > flag + 1 {

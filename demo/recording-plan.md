@@ -18,16 +18,10 @@ The 17-app close result is an owner-reported measurement from a prior run. Use i
 
 ## Turn your recording into the README GIF
 
-Save the original recording as `work/conductor-demo.mov`. `work/` is ignored by Git. Install FFmpeg if it is not already available, then run:
+Save the original recording as `work/conductor-demo.mov`. `work/` is ignored by Git. Install FFmpeg if it is not already available, then run this from the repository folder:
 
 ```sh
-mkdir -p work
-ffmpeg -ss 0 -i work/conductor-demo.mov -t 38 \
-  -vf "fps=12,scale=1200:-1:flags=lanczos,palettegen" \
-  -frames:v 1 -y work/conductor-palette.png
-ffmpeg -ss 0 -i work/conductor-demo.mov -i work/conductor-palette.png -t 38 \
-  -filter_complex "fps=12,scale=1200:-1:flags=lanczos[frames];[frames][1:v]paletteuse=dither=sierra2_4a" \
-  -loop 0 -y assets/demo.gif
+bash demo/make-gif.sh work/conductor-demo.mov
 ```
 
-Review the GIF at full size. Confirm the app screen is real, no private material is visible, the spoken request matches the actions, and the full result remains legible. Keep the original video out of the repository.
+The script creates `assets/demo.gif` and adds it to the README. Review the GIF at full size before committing it. Confirm the app screen is real, no private material is visible, the spoken request matches the actions, and the full result remains legible. Keep the original video out of the repository.

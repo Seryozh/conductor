@@ -237,7 +237,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Brain", systemImage: "brain.head.profile").font(.system(size: 16, weight: .semibold))
                 ConductorSwitchRow(title: "Plan before acting", isOn: $model.brainEnabled)
-                Text("Claude Code and Codex can each run Conductor's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use.")
+                Text("Choose a Claude Code or Codex CLI brain. Sign in through that CLI with your Claude or ChatGPT account first, then select the model here.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 ForEach(BrainChoice.all) { choice in brainRow(choice) }
 
@@ -374,7 +374,7 @@ struct SettingsView: View {
                 Text("Full access and privacy").font(.system(size: 14, weight: .medium))
                 Text("The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Conductor. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
-                Text("Voice audio is transcribed on this Mac. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request.")
+                Text("Apple Speech may use Apple's network service when on-device recognition is unavailable; optional Whisper runs locally. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request.")
                     .font(.system(size: 12)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 ConductorSwitchRow(title: "Write diagnostic logs (may include screen text and commands)", isOn: $diagnosticsEnabled)
             }

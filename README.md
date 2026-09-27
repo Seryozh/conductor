@@ -10,7 +10,9 @@ This source includes Claude Code and Codex CLI brain options, plus optional loca
 
 ## Demo
 
+<!-- demo:start -->
 The real screen recording is still pending. Both CLI paths need an end-to-end check in this copy before I can show the app working. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
+<!-- demo:end -->
 
 ## What is different
 
@@ -52,21 +54,21 @@ Choose **Sign in with ChatGPT** when it starts. OpenAI’s [Codex CLI guide](htt
 
 ### 2. Get a TypeSafe API key
 
-Open the [TypeSafe quick start](https://docs.typesafe.ai/introduction/quickstart), sign in to its dashboard, and create an API key. Enter it in **Conductor Settings → Jev action selector**. Conductor saves it in macOS Keychain. It does not read keys from shell variables or .env files.
+Open the [TypeSafe quick start](https://docs.typesafe.ai/introduction/quickstart), sign in to its dashboard, and create an API key. You will enter it in Conductor after opening the app. Conductor saves it in macOS Keychain and does not read keys from shell variables or .env files.
 
 ### 3. Build and open Conductor
 
-Clone this repository from its GitHub **Code** menu, then run these commands from the repository folder. Install Xcode Command Line Tools first if they are not already on the Mac.
+Clone this repository from its GitHub **Code** menu. If Xcode Command Line Tools are missing, run `xcode-select --install` and wait for the installer to finish. Then, from the repository folder, run:
 
 ```sh
-xcode-select -p >/dev/null 2>&1 || xcode-select --install
+xcode-select -p
 bash build.sh
 open 'dist/Conductor.app'
 ```
 
 The build uses Apple frameworks and Swift. It does not need a package manager or third-party Swift packages. It creates an unsigned app.
 
-In Settings, choose the CLI you signed in to, add the TypeSafe API key, and check the paths to the CLI and its configuration. Apple Speech works by default. Whisper is optional.
+In Settings, choose the CLI you signed in to and enter the TypeSafe API key under **Jev action selector**. If Conductor cannot find your CLI, set its executable path under **CLI and local speech paths**. Apple Speech works by default. Whisper is optional.
 
 ### 4. Set up local Whisper (optional)
 
@@ -78,9 +80,10 @@ cd whisper.cpp
 sh ./models/download-ggml-model.sh large-v3-turbo-q5_0
 cmake -B build
 cmake --build build -j --config Release
+printf '%s\n' "$PWD/build/bin/whisper-server" "$PWD/models/ggml-large-v3-turbo-q5_0.bin"
 ```
 
-In Conductor Settings → **CLI and local speech paths**, set the server to `build/bin/whisper-server` and the model to `models/ggml-large-v3-turbo-q5_0.bin`. Turn on **Use local Whisper for final transcription**. The model is about 547 MiB; Whisper runs on your Mac and does not need a Whisper API key. See the [whisper.cpp build guide](https://github.com/ggml-org/whisper.cpp#quick-start) and [model list](https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md).
+The last command prints two absolute paths. In Conductor Settings → **CLI and local speech paths**, paste the first into the server field and the second into the model field. Turn on **Use local Whisper for final transcription**. The model is about 547 MiB; Whisper runs on your Mac and does not need a Whisper API key. See the [whisper.cpp build guide](https://github.com/ggml-org/whisper.cpp#quick-start) and [model list](https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md).
 
 ### 5. Grant macOS permissions
 
@@ -90,7 +93,7 @@ Use the buttons in **Settings → macOS permissions** for Microphone, Speech Rec
 
 ![Architecture diagram showing speech transcription, a Claude Code or Codex CLI brain, TypeSafe Jev action selection, and the macOS controller](assets/architecture.svg)
 
-Apple Speech transcribes voice on the Mac. Optional Whisper can make a final local transcription pass. The selected CLI receives the request, app context, screen text, open windows, and screenshots when needed. It can also use its own tools for files, commands, and web work.
+Apple Speech handles live transcription. Conductor asks macOS to keep recognition on the device when the selected language supports it; otherwise Apple Speech may use its network service. Optional Whisper makes a local final pass. The selected CLI receives the request, app context, screen text, open windows, and screenshots when needed. It can also use its own tools for files, commands, and web work.
 
 When a task needs a visible control, Conductor reads the app’s Accessibility tree and sends the request, screen text, available actions, and action history as text to TypeSafe’s Jev API. Jev chooses one action. The Swift controller performs it and checks the new state before continuing. TypeSafe receives text, not the audio or screenshots.
 
@@ -110,7 +113,7 @@ The **Jev activity** panel holds up to 300 TypeSafe API call records in memory w
 
 Jev needs a TypeSafe API key. The current [TypeSafe model page](https://docs.typesafe.ai/models) lists Jev at **$0.042 per million input tokens**; output tokens are free. Check the docs before signing up or estimating usage because prices can change.
 
-With subscription sign-in, the reasoning CLI uses the Claude or ChatGPT account you already have, subject to that provider’s plan and usage limits. Optional Whisper runs locally and uses your Mac’s storage and compute.
+Sign in to Claude Code or Codex with the Claude or ChatGPT account you already have, subject to that provider’s plan and usage limits. Both integrations still need an end-to-end check in this copy. Optional Whisper runs locally and uses your Mac’s storage and compute.
 
 The tag workflow builds an unsigned ZIP. Signing and notarizing a public macOS download needs an Apple Developer Program membership, currently **$99 USD per year**, and a Developer ID certificate. I have not decided whether to enroll. See [Apple’s enrollment page](https://developer.apple.com/programs/enroll/) and [notarization overview](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
@@ -126,7 +129,7 @@ Click **Stop** or say **“cancel task.”**
 
 **Does TypeSafe receive my voice or screenshots?**
 
-No. Speech is transcribed on the Mac. The Jev API receives text state for action selection, including the request, screen text, available actions, and history. The CLI provider may receive screenshots when the brain needs one.
+No. The Jev API receives text state for action selection, including the request, screen text, available actions, and history. The CLI provider may receive screenshots when the brain needs one. Apple Speech may use Apple’s network service when on-device recognition is unavailable; optional Whisper runs locally.
 
 **Do I need Whisper?**
 

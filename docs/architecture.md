@@ -4,7 +4,7 @@ Conductor separates reasoning, action selection, and macOS input.
 
 ## Request and reasoning
 
-Apple Speech transcribes voice on the Mac. An optional local Whisper server can make a final transcription pass on recorded audio. Text typed into the command bar follows the same task path.
+Apple Speech handles live transcription. Conductor requests on-device recognition when macOS supports it for the selected language; otherwise Apple Speech may use its network service. An optional local Whisper server can make a final pass on recorded audio. Text typed into the command bar follows the same task path.
 
 The selected Claude Code or Codex CLI receives the request, current app context, screen text, open windows, prior action results, and a screenshot when the brain asks for one. The CLI runs with its built-in approval and sandbox checks bypassed. It can use its own shell and file tools while it reasons.
 
@@ -24,7 +24,7 @@ The brain can also act directly through its own CLI tools. The Jev action catalo
 
 The CLI is launched with per-action approval and sandbox checks disabled. Conductor does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
 
-Voice audio stays on the Mac for transcription. The selected CLI provider receives the request, screen text, and screenshots when needed. TypeSafe receives the request and text context used to choose a UI action. The TypeSafe key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
+Whisper audio stays on the Mac. Apple Speech may use Apple’s network service when on-device recognition is unavailable. The selected CLI provider receives the request, screen text, and screenshots when needed. TypeSafe receives the request and text context used to choose a UI action, not audio or screenshots. The TypeSafe key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
 
 The Jev activity panel holds up to 300 API call records in memory for the current app session. Records can contain the request, screen text, action choices, and API response. They are not written to disk and disappear when the app closes. Opt-in diagnostic logs are separate files under macOS Application Support.
 

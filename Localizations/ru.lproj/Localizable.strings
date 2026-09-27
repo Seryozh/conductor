@@ -9,7 +9,8 @@
 "model.astra" = "астра";
 "model.luna" = "луна";
 "completion.done" = "готово|готов|поправил|переключил|открыл|закрыл|отправил|сохранил|открываю|закрываю|отправляю|переключаю";
-"completion.negation" = "не|невозможно|не смог";
+"completion.firstPerson" = "я|мы";
+"completion.outcome" = "всё готово|все готово";
 "speech.endMarkers" = "конец команды|закончить команду";
 "speech.sendMarkers" = "отправляй|отправить|готово отправляй";
 "speech.discardMarkers" = "сотри|отмени команду|очисти команду";
@@ -40,7 +41,7 @@
 "Jev activity" = "Действия Jev";
 "Brain" = "Мозг";
 "Plan before acting" = "Сначала составлять план";
-"Claude Code and Codex can each run Conductor's reasoning brain. Claude uses your Claude Code login and supported subscription. Codex uses your ChatGPT login. Pick the model you want to use." = "Claude Code и Codex могут выполнять роль рассуждающего ядра Conductor. Claude использует ваш вход в Claude Code и совместимую подписку. Codex использует ваш вход в ChatGPT. Выберите модель.";
+"Choose a Claude Code or Codex CLI brain. Sign in through that CLI with your Claude or ChatGPT account first, then select the model here." = "Сначала войдите в Claude Code или Codex CLI через свой аккаунт Claude или ChatGPT, затем выберите модель здесь.";
 "Start new conversation" = "Начать новый разговор";
 "CLI and local speech paths" = "Пути к CLI и локальной речи";
 "Leave a field blank to let Conductor search its usual install locations. Paths are saved in this Mac's app settings." = "Оставьте поле пустым, чтобы Conductor искал программу в стандартных папках. Пути сохраняются в настройках приложения на этом Mac.";
@@ -78,7 +79,7 @@
 "macOS may also prompt for Automation access when Conductor first controls an app. Grant access in System Settings to enable that app." = "При первом управлении приложением macOS может запросить разрешение на автоматизацию. Разрешите доступ в Системных настройках.";
 "Full access and privacy" = "Полный доступ и конфиденциальность";
 "The selected Claude Code or Codex CLI runs with its approval and sandbox checks bypassed. It can run commands, read and write files, use AppleScript and JXA, control apps, and use keyboard and pointer actions without asking you to approve each step in Conductor. Stop it with the Stop button or say ‘cancel task’. macOS privacy grants still apply and cannot be bypassed by the app." = "Выбранный Claude Code или Codex CLI работает без проверок подтверждения и изоляции. Он может запускать команды, читать и изменять файлы, использовать AppleScript и JXA, управлять приложениями, клавиатурой и указателем без подтверждения каждого шага в Conductor. Остановите его кнопкой «Стоп» или словами «отмени задачу». Разрешения конфиденциальности macOS по-прежнему действуют и не могут быть обойдены приложением.";
-"Voice audio is transcribed on this Mac. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request." = "Голос расшифровывается на этом Mac. Выбранный провайдер ядра получает запрос, текст на экране и снимки экрана, когда они нужны. TypeSafe получает ваш запрос, текст на экране, доступные варианты и историю действий, но не аудио и не снимки экрана. Защищённые поля исключены, однако ядро CLI с полным доступом может читать локальные файлы и данные приложений для выполнения запроса.";
+"Apple Speech may use Apple's network service when on-device recognition is unavailable; optional Whisper runs locally. The selected brain provider receives the request, screen text, and screenshots when needed. TypeSafe receives your request, screen text, available choices, and action history, but no audio or screenshots. Secure accessibility fields are excluded, but the unrestricted CLI brain may read local files or other app data to carry out a request." = "Apple Speech может передавать аудио в сервис Apple, если распознавание на устройстве недоступно; дополнительный Whisper работает локально. Выбранный провайдер ядра получает запрос, текст на экране и снимки экрана, когда они нужны. TypeSafe получает ваш запрос, текст на экране, доступные варианты и историю действий, но не аудио и не снимки экрана. Защищённые поля исключены, однако ядро CLI с полным доступом может читать локальные файлы и данные приложений для выполнения запроса.";
 "Write diagnostic logs (may include screen text and commands)" = "Сохранять диагностические журналы (в них могут быть текст с экрана и команды)";
 "TypeSafe API key" = "Ключ TypeSafe API";
 "Save" = "Сохранить";

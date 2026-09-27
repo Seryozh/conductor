@@ -145,12 +145,26 @@ final class ClaudeBrain: @unchecked Sendable, BrainPlanner {
     }
     /// Detect an unsupported claim that the brain completed an action without returning an action.
     static func claimsDone(_ text: String) -> Bool {
-        let verbs = VoiceLocalization.words("completion.done", fallback: "done|fixed|switched|opened|closed|sent|saved|opening|closing|sending|switching").joined(separator: "|")
-        let pattern = "(?<![\\p{L}])(\(verbs))(?![\\p{L}])"
-        guard let match = text.lowercased().range(of: pattern, options: .regularExpression) else { return false }
-        let prefix = String(text.lowercased()[..<match.lowerBound])
-        let negatives = ["not"] + VoiceLocalization.words("completion.negation")
-        return !negatives.contains { prefix.hasSuffix($0 + " ") }
+        let verbs = VoiceLocalization.words("completion.done", fallback: "done|fixed|switched|opened|closed|sent|saved|opening|closing|sending|switching")
+            .map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        guard !verbs.isEmpty else { return false }
+        // A completion verb inside a user's statement or an explanation is not the
+        // brain claiming it performed an action. Look for a direct statement or one
+        // made in the first person, including after a brief opening clause.
+        let direct = "(?i)(?:\\A|[.!?;\\n]\\s*)(?:\(verbs))(?![\\p{L}])"
+        if text.range(of: direct, options: .regularExpression) != nil { return true }
+        let subjects = VoiceLocalization.words("completion.firstPerson", fallback: "i|i've|i’ve|i'm|i’m|we|we've|we’ve|we're|we’re")
+            .map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        let firstPerson = "(?i)(?:\\A|[.!?;,\\n]\\s*)(?:\(subjects))(?:\\s+(?:have|am|are))?(?:\\s+(?:just|already))?\\s+(?:\(verbs))(?![\\p{L}])"
+        if text.range(of: firstPerson, options: .regularExpression) != nil { return true }
+        let outcomes = VoiceLocalization.words("completion.outcome", fallback: "all done|everything is done")
+            .map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        let outcome = "(?i)\\A\\s*(?:\(outcomes))(?=\\s*[.!?,]|\\s*\\z)"
+        if !outcomes.isEmpty, text.range(of: outcome, options: .regularExpression) != nil { return true }
+        // A short named-app result can be a completion claim, but explanatory
+        // prose such as "Safari is closed in a screenshot" is not one.
+        let namedResult = "\\A\\s*(?!The\\b|This\\b|That\\b|It\\b)\\p{Lu}[\\p{L}\\p{N}._-]*(?:\\s+\\p{Lu}[\\p{L}\\p{N}._-]*){0,2}\\s+(?i:is|has\\s+been)\\s+(?i:closed|opened|saved|sent|fixed)(?=\\s*[.!?,]|\\s*\\z)"
+        return text.range(of: namedResult, options: .regularExpression) != nil
     }
     /// "claude-opus-5-5" → "Opus 5.5", "claude-haiku-4-5-20251001" → "Haiku 4.5".
     static func displayName(_ id: String) -> String {

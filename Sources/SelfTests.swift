@@ -57,13 +57,19 @@ enum SelfTests {
         UserDefaults.standard.set("en-US", forKey: "speechLocale")
         precondition(BrainChoice.find("luna")?.effort == "xhigh" && BrainChoice.find("astra")?.codex == true)
         precondition(CodexBrain.tomlString("a\"b\\c\nd café") == "\"a\\\"b\\\\c\\nd café\"")
+        let codexEnvironment = CodexBrain.subscriptionEnvironment(["PATH": "/usr/bin", "OPENAI_API_KEY": "example", "CODEX_HOME": "/tmp/other", "AZURE_OPENAI_ENDPOINT": "example"])
+        precondition(codexEnvironment == ["PATH": "/usr/bin", "CODEX_HOME": "/tmp/other"])
         precondition(VoiceControl.parse("switch to opus") == .switchModel("opus"))
         precondition(VoiceControl.parse("switch to Muse") == nil)   // not offered
         precondition(VoiceControl.parse("tell the agent to switch to opus") == nil)
         precondition(VoiceControl.parse("turn on the music") == nil)
         precondition(ClaudeBrain.claimsDone("Done, fixed.") && ClaudeBrain.claimsDone("Switched to Sonnet.") && ClaudeBrain.claimsDone("Opened the map.") )
+        precondition(ClaudeBrain.claimsDone("I closed Safari.") && ClaudeBrain.claimsDone("Sure, I opened Notes."))
+        precondition(ClaudeBrain.claimsDone("All done.") && ClaudeBrain.claimsDone("Safari is closed."))
         precondition(!ClaudeBrain.claimsDone("Could not open it.") && !ClaudeBrain.claimsDone("You opened Calculator at 8:44.")
-            && !ClaudeBrain.claimsDone("I am Claude Opus 5.5 by Anthropic.") && !ClaudeBrain.claimsDone("I did not send the message.") && !ClaudeBrain.claimsDone("I can help.") && !ClaudeBrain.claimsDone("The second item is closing apps. It is already done."))
+            && !ClaudeBrain.claimsDone("I am Claude Opus 5.5 by Anthropic.") && !ClaudeBrain.claimsDone("I did not send the message.") && !ClaudeBrain.claimsDone("I can help.") && !ClaudeBrain.claimsDone("The second item is closing apps. It is already done.")
+            && !ClaudeBrain.claimsDone("If I opened Safari, would that help?") && !ClaudeBrain.claimsDone("I have not saved it.")
+            && !ClaudeBrain.claimsDone("Safari is closed in this screenshot."))
         var fake = BrainReply(say: "Done, fixed.", open: nil, request: nil)
         precondition(fake.claimsDoneWithoutActing)
         fake.settings = ["model": "opus"]
@@ -80,6 +86,8 @@ enum SelfTests {
         var didItself = BrainReply(say: "Done, closed the apps.", open: nil, request: nil)
         didItself.toolActions = ["Bash: osascript -e 'quit app \"Safari\"'"]
         precondition(!didItself.claimsDoneWithoutActing)
+        UserDefaults.standard.set("ru-RU", forKey: "speechLocale")
+        precondition(ClaudeBrain.claimsDone(VoiceLocalization.words("completion.outcome").first! + "."))
         let open: [(name: String, bundle: String)] = [("Google Chrome", "com.google.Chrome"), ("Claude", "com.anthropic.claudefordesktop"), ("Claude Work", "com.example.claude-work"), ("Notes", "com.apple.Notes"), ("Numbers", "com.apple.Numbers")]
         precondition(OpenApps.matching(chromeAlias, in: open) == [0] && OpenApps.matching("claude", in: open) == [1] && OpenApps.matching("com.apple.notes", in: open) == [3])
         precondition(OpenApps.matching("Work", in: open) == [2] && OpenApps.matching("N", in: open).isEmpty && OpenApps.matching("Safari", in: open).isEmpty)
