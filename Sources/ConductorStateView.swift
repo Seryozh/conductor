@@ -4,14 +4,19 @@ import QuartzCore
 import SwiftUI
 
 /// A local, silent illustration of an existing engine state. This view owns no task state.
+/// How a pose fills its view: the whole poster, or the command panel's stage, where every pose is
+/// cropped to the same head height and scale so the figure does not jump between states.
+enum ConductorFraming { case poster, stage }
+
 struct ConductorStateView: View {
     let state: VoiceState
     var animates = true
+    var framing: ConductorFraming = .poster
     var bundle: Bundle = .main
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ConductorStateRepresentable(state: state, animates: animates && !reduceMotion, bundle: bundle)
+        ConductorStateRepresentable(state: state, animates: animates && !reduceMotion, framing: framing, bundle: bundle)
             .accessibilityHidden(true)
             .allowsHitTesting(false)
     }
@@ -20,15 +25,16 @@ struct ConductorStateView: View {
 private struct ConductorStateRepresentable: NSViewRepresentable {
     let state: VoiceState
     let animates: Bool
+    let framing: ConductorFraming
     let bundle: Bundle
 
     func makeNSView(context: Context) -> ConductorStatePlayerView {
         let view = ConductorStatePlayerView()
-        view.configure(state: state, animates: animates, bundle: bundle)
+        view.configure(state: state, animates: animates, framing: framing, bundle: bundle)
         return view
     }
     func updateNSView(_ view: ConductorStatePlayerView, context: Context) {
-        view.configure(state: state, animates: animates, bundle: bundle)
+        view.configure(state: state, animates: animates, framing: framing, bundle: bundle)
     }
     static func dismantleNSView(_ view: ConductorStatePlayerView, coordinator: ()) {
         view.dispose()
@@ -45,6 +51,7 @@ final class ConductorStatePlayerView: NSView {
     private var fadeCompletion: DispatchWorkItem?
     private var transitionGeneration = 0
     private var screensAsleep = false
+    private var framing: ConductorFraming = .poster
     private static let fadeDuration: TimeInterval = 0.22
 
     override init(frame frameRect: NSRect) {
@@ -88,14 +95,20 @@ final class ConductorStatePlayerView: NSView {
         }
         observers.append((center, token))
     }
-    func configure(state: VoiceState, animates: Bool, bundle: Bundle) {
+    func configure(state: VoiceState, animates: Bool, framing: ConductorFraming = .poster, bundle: Bundle) {
         allowsMotion = animates
+        if self.framing != framing {
+            self.framing = framing
+            current?.framing = framing; retiring?.framing = framing
+            current?.resize(to: bounds, scale: window?.backingScaleFactor ?? 2)
+        }
         if current?.state == state && current?.bundleURL == bundle.bundleURL {
             refreshPlayback()
             return
         }
         finishFade()
         let next = ConductorPose(state: state, bundle: bundle)
+        next.framing = framing
         next.resize(to: bounds, scale: window?.backingScaleFactor ?? 2)
         layer?.addSublayer(next.layer)
         let previous = current
@@ -175,6 +188,7 @@ final class ConductorStatePlayerView: NSView {
 private final class ConductorPose {
     let state: VoiceState
     let bundleURL: URL
+    var framing: ConductorFraming = .poster
     let layer = CALayer()
     private let poster = CALayer()
     private let video = AVPlayerLayer()
@@ -227,23 +241,39 @@ private final class ConductorPose {
         CATransaction.setDisableActions(true)
         layer.frame = bounds
         layer.contentsScale = scale
-        poster.frame = hasPoster ? layer.bounds : CGRect(x: (bounds.width - 28) / 2, y: (bounds.height - 28) / 2, width: 28, height: 28)
+        let artwork = framing == .stage && hasPoster ? stageFrame(in: bounds) : layer.bounds
+        poster.frame = hasPoster ? artwork : CGRect(x: (bounds.width - 28) / 2, y: (bounds.height - 28) / 2, width: 28, height: 28)
         poster.contentsScale = scale
         if !hasPoster && fallbackScale != scale {
             poster.contents = rasterizedFallback(scale: scale)
             fallbackScale = scale
         }
-        video.frame = layer.bounds
+        video.frame = artwork
         video.contentsScale = scale
         verticalEdgeMask.frame = layer.bounds
         horizontalEdgeMask.frame = layer.bounds
         func stops(_ length: CGFloat) -> [NSNumber] {
-            let edge = min(0.25, 12 / max(1, length))
+            let edge = min(0.25, (framing == .stage ? 5 : 12) / max(1, length))
             return [0, edge * 2 / 3, edge, 1 - edge, 1 - edge * 2 / 3, 1].map { NSNumber(value: Double($0)) }
         }
         verticalEdgeMask.locations = stops(bounds.height)
         horizontalEdgeMask.locations = stops(bounds.width)
         CATransaction.commit()
+    }
+    /// Poster pixels (360 × 264, top-left origin) that fill the stage: 273 × 220 around each figure,
+    /// with the head the same distance from the top in every pose.
+    private static let stageCrops: [VoiceState: CGPoint] = [
+        .ready: CGPoint(x: 40, y: 0), .listening: CGPoint(x: 43, y: 19), .recognizing: CGPoint(x: 43, y: 8),
+        .thinking: CGPoint(x: 44, y: 15), .acting: CGPoint(x: 44, y: 0), .checking: CGPoint(x: 40, y: 24),
+        .attention: CGPoint(x: 56, y: 10),
+    ]
+    private func stageFrame(in bounds: CGRect) -> CGRect {
+        let poster = CGSize(width: 360, height: 264), crop = CGSize(width: 273, height: 220)
+        let origin = Self.stageCrops[state] ?? CGPoint(x: 43, y: 22)
+        let scale = max(bounds.width / crop.width, bounds.height / crop.height)
+        let x = -origin.x * scale - (crop.width * scale - bounds.width) / 2
+        let top = bounds.maxY + origin.y * scale + (crop.height * scale - bounds.height) / 2
+        return CGRect(x: x, y: top - poster.height * scale, width: poster.width * scale, height: poster.height * scale)
     }
     private func rasterizedFallback(scale: CGFloat) -> CGImage? {
         guard let fallbackImage else { return nil }

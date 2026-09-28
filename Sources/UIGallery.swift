@@ -102,7 +102,7 @@ private enum Sample {
         let limits = CommandSurfaceLimits(); limits.width = width; limits.height = height
         let size = CommandBarView.preferredSize(model: m, typing: typing, details: details, maximumHeight: height, maximumWidth: width, attentionCollapsed: collapsed)
         let view = CommandBarView(model: m, openSettings: {}, releaseKeyboard: {}, initiallyEditing: typing, initiallyShowsDetails: details,
-                                  limits: limits, initiallyAttentionCollapsed: collapsed)
+                                  limits: limits, initiallyAttentionCollapsed: collapsed, animates: false)
         try save(view, size: size, group: group, name: "panel-" + name, title: title, when: when, backdrop: true, core: core, backdropColor: backdropColor)
     }
 
@@ -111,18 +111,18 @@ private enum Sample {
     private static func commandBar() throws {
         try bar("idle-ready", "Idle: ready", "No task and the mic is off: after launch, after closing an answer, between commands. The label is the engine state, the hint says how to speak.", model(), core: true)
         let micOn = model(micOn: true)
-        try bar("idle-mic-on", "Idle: mic on, not capturing", "The listening session is on (continuous mode or one-shot) but no speech is being captured at this moment. Hint reads ‘Mic on’; the mic button turns red.", micOn)
+        try bar("idle-mic-on", "Idle: mic on, not capturing", "The listening session is on (continuous mode or one-shot) but no speech is being captured at this moment. The state reads ‘Mic on’ and the mic button gets an orange ring.", micOn)
         let agents = model(); agents.agentsOK = false
-        try bar("idle-agent-warning", "Idle: local agents need attention", "A configured local agent-status command reported a problem: the ⋯ menu button turns red. Nothing else explains why.", agents)
+        try bar("idle-agent-warning", "Idle: local agents need attention", "A configured local agent-status command reported a problem: the ⋯ button turns red and its tooltip carries the summary.", agents)
 
         func holding(_ text: String, level: Double = 0.35) -> AppModel {
             let m = model(); m.holdingToTalk = true; m.phase = "Listening"; m.liveTranscript = text; m.level = level; return m
         }
         try bar("listening-fn-empty", "Listening (Fn held): nothing heard yet", "Fn or right Option is held and no words are recognized yet.", holding(""), core: true)
         try bar("listening-fn-short", "Listening (Fn held): short transcript", "Words appear live as they are recognized. Release Fn to send.", holding(Sample.shortCommand, level: 0.8), core: true)
-        try bar("listening-fn-medium", "Listening (Fn held): about 100 characters", "Up to 120 characters stay in the top area.", holding(Sample.mediumCommand))
-        try bar("listening-fn-long", "Listening (Fn held): long transcript", "Over 120 characters the transcript moves into a scrolling area under the header.", holding(Sample.longCommand), core: true)
-        try bar("listening-fn-very-long", "Listening (Fn held): very long dictation", "A two-minute dictation: the panel reaches its maximum height and the transcript scrolls.", holding(Sample.veryLongCommand))
+        try bar("listening-fn-medium", "Listening (Fn held): about 100 characters", "Three lines of words fit in the bar.", holding(Sample.mediumCommand))
+        try bar("listening-fn-long", "Listening (Fn held): long transcript", "Longer speech keeps the newest words in view; older lines fade out at the top. The panel does not grow.", holding(Sample.longCommand), core: true)
+        try bar("listening-fn-very-long", "Listening (Fn held): very long dictation", "A two-minute dictation: still the same bar, the newest words in view.", holding(Sample.veryLongCommand))
         try bar("listening-fn-russian", "Listening (Fn held): Russian speech", "Speech language Russian (or mixed words): Cyrillic transcript in the English interface.", holding(Sample.russianCommand))
         let tap = model(micOn: true); tap.listening = true; tap.tapListening = true; tap.phase = "Listening"; tap.liveTranscript = Sample.shortCommand
         try bar("listening-tap-mode", "Listening after a short Fn tap", "A short tap starts listening until the next tap or ‘end command’.", tap)
@@ -135,27 +135,27 @@ private enum Sample {
 
         func recognizing(_ text: String) -> AppModel { let m = model(); m.phase = "Recognizing"; m.liveTranscript = text; return m }
         try bar("recognizing-empty", "Recognizing: finishing the transcript", "Fn released; the final transcript is not ready yet (Apple Speech or local Whisper).", recognizing(""), core: true)
-        try bar("recognizing-short", "Recognizing with a short transcript", "Same moment, words already visible.", recognizing(Sample.shortCommand))
-        try bar("recognizing-long", "Recognizing with a long transcript", "Long transcripts use the scrolling area.", recognizing(Sample.longCommand))
+        try bar("recognizing-short", "Recognizing with a short transcript", "Same moment, words already visible.", recognizing(Sample.shortCommand), core: true)
+        try bar("recognizing-long", "Recognizing with a long transcript", "Long transcripts keep their newest words in view.", recognizing(Sample.longCommand))
 
         func busy(_ phase: String, _ detail: String, command: String = Sample.russianCommand) -> AppModel {
             let m = model(); m.busy = true; m.phase = phase; m.detail = detail; m.transcript = command; return m
         }
-        try bar("thinking", "Thinking", "The selected brain is planning. The heard request is shown above the status.", busy("Thinking", "Claude Sonnet 5.5 is thinking…"), core: true)
-        try bar("thinking-long-request", "Thinking with a long request", "The request is clamped to two lines while working.", busy("Thinking", "Claude Sonnet 5.5 is thinking…", command: Sample.longCommand))
+        try bar("thinking", "Thinking", "The selected brain is planning. The bar keeps your request and a timer; the drawer says what Conductor is doing.", busy("Thinking", "Claude Sonnet 5.5 is thinking…"), core: true)
+        try bar("thinking-long-request", "Thinking with a long request", "The request is clamped to three lines in the bar.", busy("Thinking", "Claude Sonnet 5.5 is thinking…", command: Sample.longCommand))
         try bar("brain-tool-work", "Brain working on the Mac", "The brain runs its own tools (shell, AppleScript). The artwork still shows Thinking.", busy("Thinking", "Working on your Mac: Close every app except Claude"))
         try bar("acting-jev-step", "Acting: a Jev UI step", "Jev performs one visible UI action (click, type, press).", busy("Acting", "Click New Tab", command: "В Chrome открой мне Википедию, GitHub и Hacker News."), core: true)
         try bar("observing-no-brain", "Acting without a brain", "Brain turned off (Plan before acting off): Jev reads the screen directly.", busy("Observing", "Reading available actions…", command: Sample.shortCommand))
         try bar("checking", "Checking the result", "After the actions the brain looks at the screen to judge the whole request.", busy("Thinking", "Checking the result…"), core: true)
         let longDetail = busy("Acting", "Jev is choosing between 184 controls in Google Chrome: the tab strip, the address bar, bookmarks and the page itself. This round asks which control opens a new tab without closing the current page, then types the address and presses Return.")
-        try bar("working-long-status", "Working with a long status line", "A status over 180 characters moves into the scrolling area.", longDetail)
+        try bar("working-long-status", "Working with a long status line", "A long status wraps in the drawer.", longDetail)
         let queue = busy("Acting", "Type “https://wikipedia.org”"); queue.shotsThisCommand = 3
         queue.stageForGallery(queued: ["Open Telegram", "Read me the latest reply from the coordinator"])
         try bar("busy-queue-and-screenshots", "Working with queued requests and screenshots", "Requests spoken or typed while busy wait in a queue (up to 8); the camera count shows screenshots sent to the brain.", queue)
         let nextEmpty = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); nextEmpty.holdingToTalk = true
-        try bar("busy-listening-next-empty", "Working and listening to the next request", "Fn held while a task runs: the next request will be queued.", nextEmpty)
+        try bar("busy-listening-next-empty", "Working and listening to the next request", "Fn held while a task runs: the bar listens, the drawer keeps the work status and a Stop button.", nextEmpty)
         let nextText = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); nextText.holdingToTalk = true; nextText.liveTranscript = "Then open Telegram and read me the newest message"; nextText.level = 0.7
-        try bar("busy-listening-next-text", "Working and listening, with words", "The next request's live transcript uses the scrolling area.", nextText, core: true)
+        try bar("busy-listening-next-text", "Working and listening, with words", "The next request's words appear in the bar, once.", nextText, core: true)
         let busyTyping = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); busyTyping.typedCommand = "Also mute Slack"
         try bar("busy-typing-queue", "Typing a request while working", "The keyboard button opens the editor; while busy it adds to the queue.", busyTyping, typing: true)
 
@@ -163,10 +163,10 @@ private enum Sample {
             let m = model(); m.phase = "Done"; m.transcript = command; m.answerText = text; m.modelLabel = label
             m.usageLine = Sample.usageLine; m.dayLine = Sample.dayLine; m.contextUsed = 11_664; return m
         }
-        try bar("answer-short", "Answer: short", "A short answer fits beside the artwork.", answer(Sample.shortAnswer), core: true)
-        try bar("answer-short-details", "Answer: short, details open", "Details shows tokens, cost at API list price, plan usage and the conversation bar.", answer(Sample.shortAnswer), details: true)
-        try bar("answer-medium", "Answer: medium", "Longer answers move under the header with a footer of controls.", answer(Sample.mediumAnswer, command: Sample.mediumCommand), core: true)
-        try bar("answer-long", "Answer: long", "Multi-paragraph answer, scrolls inside the panel.", answer(Sample.longAnswer, command: "What changed in Conductor today?"))
+        try bar("answer-short", "Answer: short", "Every answer opens in the drawer above the bar; the bar keeps your request.", answer(Sample.shortAnswer), core: true)
+        try bar("answer-short-details", "Answer: short, details open", "Details shows tokens, cost at API list price, plan usage and the conversation bar.", answer(Sample.shortAnswer), details: true, core: true)
+        try bar("answer-medium", "Answer: medium", "The same layout as a short answer, only taller.", answer(Sample.mediumAnswer, command: Sample.mediumCommand), core: true)
+        try bar("answer-long", "Answer: long", "Multi-paragraph answer; the drawer grows up to the screen limit.", answer(Sample.longAnswer, command: "What changed in Conductor today?"))
         try bar("answer-very-long", "Answer: very long", "Maximum panel height; the answer scrolls.", answer(Sample.veryLongAnswer, command: "What changed in Conductor today?"))
         let rich = answer(Sample.shortAnswer)
         rich.shotsThisCommand = 2; rich.shotsToday = 9; rich.contextUsed = 30_500
@@ -184,7 +184,7 @@ private enum Sample {
         let brainError = attention("Claude: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access")
         brainError.transcript = "Закрой все приложения, кроме Клода. Пожалуйста."
         brainError.answerText = "Could not complete the request: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"
-        try bar("error-brain-with-answer", "Error: brain failed (attention plus answer)", "A brain error sets Needs attention and also shows the error as an answer, so the same text appears twice (seen in real use on 2026-09-28).", brainError, core: true)
+        try bar("error-brain-with-answer", "Error: brain failed", "A brain error sets Needs attention and an answer with the same text; the panel shows it once.", brainError, core: true)
         try bar("error-timeout", "Error: no activity from the brain", "The brain produced nothing for the idle limit; the request is unfinished.", attention("Codex produced no activity for 180 seconds. The request is unfinished."))
         try bar("error-receipt-unconfirmed", "Error: message not confirmed", "A message typed into a Codex or Claude task could not be confirmed within 8 seconds.", attention("The message could not be confirmed in the intended Codex task. The request remains unfinished; check its draft before retrying to avoid sending twice."))
         let draft = attention("Speech recognition stopped: The audio device stopped or changed. Your words are kept in the input. Review them before sending.")
@@ -202,14 +202,14 @@ private enum Sample {
         try bar("setup-key-and-accessibility", "Setup: key and Accessibility missing", "First launch on a new Mac.", noBoth)
         let billing = model(); billing.billingIssue = "TypeSafe reported a billing problem for this API key. Check your TypeSafe account, then check the connection and repeat your request."
         try bar("error-billing", "Billing problem with the Jev key", "The Jev provider refused the key for billing reasons (HTTP 402).", billing)
-        try bar("attention-dismissed", "Attention dismissed", "The × on an attention message collapses it; an Open Settings link stays.", attention("Codex produced no activity for 180 seconds. The request is unfinished."), collapsed: true)
+        try bar("attention-dismissed", "Attention dismissed", "The × on a message closes it. The panel returns to Ready unless Settings can fix the cause (setup or billing), then an Open Settings link stays.", attention("Codex produced no activity for 180 seconds. The request is unfinished."), collapsed: true)
 
-        try bar("typing-empty", "Typing a request", "The keyboard button or ‘Type a request’ opens the editor; the panel widens to 500 points.", model(), typing: true, core: true)
+        try bar("typing-empty", "Typing a request", "The keyboard button opens the editor in the drawer; the width stays the same.", model(), typing: true, core: true)
         let typed = model(); typed.typedCommand = "Open Notes and create a shopping list"
-        try bar("typing-with-text", "Typing a request with text", "Return or the arrow button runs it.", typed, typing: true)
+        try bar("typing-with-text", "Typing a request with text", "Return or the arrow button runs it.", typed, typing: true, core: true)
 
-        try bar("narrow-screen-answer", "Narrow screen: answer", "Screens under 320 points of free width stack the artwork above the text.", answer(Sample.mediumAnswer, command: Sample.mediumCommand), width: 300, height: 520)
-        try bar("short-screen-long-answer", "Short screen: long answer", "A short visible screen area limits the panel height; the answer scrolls.", answer(Sample.longAnswer, command: "What changed in Conductor today?"), height: 300)
+        try bar("narrow-screen-answer", "Narrow screen: answer", "Under 340 points of free width the conductor is hidden and the text takes the room.", answer(Sample.mediumAnswer, command: Sample.mediumCommand), width: 300, height: 520)
+        try bar("short-screen-long-answer", "Short screen: long answer", "A short visible screen area limits the drawer height; the answer scrolls.", answer(Sample.longAnswer, command: "What changed in Conductor today?"), height: 300)
     }
 
     // MARK: Settings
@@ -297,20 +297,21 @@ private enum Sample {
 
     private static func menus() throws {
         typealias Row = MenuMock.Row
-        var status: [Row] = [Row(title: "Show command bar"), Row(title: "Settings…", shortcut: "⌘,"), Row(title: "Agent dashboard"), Row(separator: true), Row(title: "Brain", disabled: true)]
-        for choice in BrainChoice.all { status.append(Row(title: choice.name + "  ·  " + choice.short, check: choice.id == "sonnet", indent: true)) }
-        status += [Row(title: "Start new conversation"), Row(title: "Check a recording…"), Row(title: "Run commands from a recording…"), Row(separator: true),
-                   Row(title: "Speak answers"), Row(title: "Continuous listening"), Row(title: "Listen for one command (⌥ Space), or hold Fn"), Row(separator: true),
-                   Row(title: "Hide command bar"), Row(title: "Quit Conductor", shortcut: "⌘Q")]
+        let sonnet = BrainChoice.find("sonnet")?.name ?? "Claude Sonnet"
+        let status: [Row] = [Row(title: "Show command bar"), Row(title: "Settings…", shortcut: "⌘,"), Row(title: "Agent dashboard"), Row(separator: true),
+                             Row(title: "Brain: " + sonnet, shortcut: "›"), Row(title: "Start new conversation"), Row(separator: true),
+                             Row(title: "Speak answers"), Row(title: "Continuous listening"), Row(title: "Listen for one command (⌥ Space), or hold Fn"), Row(separator: true),
+                             Row(title: "Diagnostics", shortcut: "›"), Row(separator: true),
+                             Row(title: "Hide command bar"), Row(title: "Quit Conductor", shortcut: "⌘Q")]
         try save(MenuMock(rows: status), size: NSSize(width: 430, height: menuHeight(status)),
                  group: "Menus (reconstructed)", name: "menu-bar-status-menu", title: "Menu bar icon menu (reconstruction)",
-                 when: "Click the Conductor icon in the macOS menu bar. Real NSMenu; drawn here from Main.swift menuNeedsUpdate, not captured.", backdrop: true, core: false)
+                 when: "Click the Conductor icon in the macOS menu bar. Real NSMenu; drawn here from Main.swift menuNeedsUpdate, not captured. Brain opens the model choices; Diagnostics holds the recording replays.", backdrop: true, core: false)
         var more: [Row] = [Row(title: "Claude Sonnet 5.5", disabled: true), Row(separator: true)]
         for choice in BrainChoice.all { more.append(Row(title: (choice.id == "sonnet" ? "✓ " : "    ") + choice.name + "  ·  " + choice.short)) }
-        more += [Row(separator: true), Row(title: "Type a request"), Row(title: "Start new conversation"), Row(title: "Agent dashboard"), Row(title: "Settings…")]
+        more += [Row(separator: true), Row(title: "Start new conversation"), Row(title: "Agent dashboard"), Row(title: "Settings…")]
         try save(MenuMock(rows: more), size: NSSize(width: 430, height: menuHeight(more)),
                  group: "Menus (reconstructed)", name: "menu-panel-more", title: "Command panel More (…) menu (reconstruction)",
-                 when: "The ⋯ button on the command panel. SwiftUI Menu in Views.swift controls(); drawn here, not captured.", backdrop: true, core: false)
+                 when: "The ⋯ button at the top right of the command panel. SwiftUI Menu in CommandPanelView.swift; drawn here, not captured.", backdrop: true, core: false)
         let states: [VoiceState] = [.ready, .listening, .recognizing, .thinking, .acting, .checking, .attention]
         let strip = HStack(spacing: 22) {
             ForEach(states, id: \.self) { state in
@@ -329,13 +330,13 @@ private enum Sample {
         let sheet = HStack(alignment: .bottom, spacing: 14) {
             ForEach(states, id: \.self) { state in
                 VStack(spacing: 8) {
-                    ConductorStateView(state: state, animates: false).frame(width: 132, height: 97)
-                    Text(state.rawValue).font(.system(size: 11)).foregroundStyle(Palette.muted)
+                    ConductorStage(state: state, tone: state.tone).frame(width: 120, height: 96)
+                    Text(state.rawValue).font(.system(size: 12)).foregroundStyle(Palette.muted)
                 }
             }
-        }.padding(20).background(Palette.panel, in: RoundedRectangle(cornerRadius: 14))
-        try save(sheet, size: NSSize(width: 7 * 132 + 6 * 14 + 40, height: 97 + 8 + 14 + 40), group: "Artwork", name: "artwork-all-states",
-                 title: "Conductor artwork for each state (posters)", when: "Resources/ConductorStates: one looping silent video per state (posters shown here); 220 ms crossfade between states.", backdrop: true, core: false)
+        }.padding(20).background(Palette.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous)).environment(\.panelMotion, false)
+        try save(sheet, size: NSSize(width: 7 * 120 + 6 * 14 + 40, height: 96 + 8 + 15 + 40), group: "Artwork", name: "artwork-all-states",
+                 title: "Conductor in the panel frame, each state", when: "Resources/ConductorStates: one looping silent video per state (posters shown here), cropped to the same head height and scale and tinted by the state; 220 ms crossfade between states.", backdrop: true, core: false)
     }
 
     // MARK: README

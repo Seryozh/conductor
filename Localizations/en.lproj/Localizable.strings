@@ -256,3 +256,29 @@
 "Run commands from a recording…" = "Run commands from a recording…";
 "Run commands" = "Run commands";
 "Check speech" = "Check speech";
+
+/* Command panel and Settings redesign, 2026-09-28. */
+"Done" = "Done";
+"Finishing your words…" = "Finishing your words…";
+"Working on your request" = "Working on your request";
+"Answer the macOS prompt to continue." = "Answer the macOS prompt to continue.";
+"Typed requests still work." = "Typed requests still work.";
+"Reconnecting…" = "Reconnecting…";
+"Check your Jev key in Settings." = "Check your Jev key in Settings.";
+"Hold Fn to try again" = "Hold Fn to try again";
+"Review your words, then send" = "Review your words, then send";
+"Release Fn to queue" = "Release Fn to queue";
+"Say ‘end command’ to send" = "Say ‘end command’ to send";
+"Pause to send" = "Pause to send";
+"Microphone unavailable" = "Microphone unavailable";
+"Reconnecting the microphone" = "Reconnecting the microphone";
+"Jev billing problem" = "Jev billing problem";
+"%lld screenshots" = "%lld screenshots";
+"Couldn't complete the request" = "Couldn't complete the request";
+"%lld today · the latest is at left" = "%lld today · the latest is at left";
+"Command-line tools" = "Command-line tools";
+"Local speech (Whisper)" = "Local speech (Whisper)";
+"Answers" = "Answers";
+"Jev actions" = "Jev actions";
+"Diagnostics" = "Diagnostics";
+"Model: %@ via %@" = "Model: %@ via %@";

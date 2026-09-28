@@ -25,8 +25,8 @@ import QuartzCore
         let cases = [("ready", ready), ("recognizing", recognizing), ("working", working), ("short-answer", short), ("long-answer", long), ("failure", failure)]
         for (name, value) in cases {
             let size = CommandBarView.preferredSize(model: value)
-            precondition(size.width == CommandBarView.width)
-            let view = CommandBarView(model: value, openSettings: {}, releaseKeyboard: {})
+            precondition(size.width == CommandBarView.width && size.height >= CommandBarView.barHeight)
+            let view = CommandBarView(model: value, openSettings: {}, releaseKeyboard: {}, animates: false)
                 .environment(\.locale, Locale(identifier: "en"))
             let host = NSHostingView(rootView: view)
             let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)

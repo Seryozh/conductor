@@ -172,7 +172,7 @@
 "Transcribing…" = "Распознаю…";
 "Hold Fn to speak" = "Зажмите Fn и говорите";
 "Release Fn to add to the queue" = "Отпустите Fn, чтобы добавить в очередь";
-"Release Fn to send" = "Отпустите Fn, чтобы отправить";
+"Release Fn to send" = "Отпустите Fn для отправки";
 "Say ‘end command’ or press Fn to send" = "Скажите «отправляй» или нажмите Fn";
 "Pause to send your next request" = "Сделайте паузу, чтобы отправить запрос";
 "Pause when finished" = "Сделайте паузу, когда закончите";
@@ -282,3 +282,29 @@
 "Run commands from a recording…" = "Выполнить команды из записи…";
 "Run commands" = "Выполнить команды";
 "Check speech" = "Проверить распознавание";
+
+/* Command panel and Settings redesign, 2026-09-28. */
+"Done" = "Готово";
+"Finishing your words…" = "Распознаю последние слова…";
+"Working on your request" = "Работаю над запросом";
+"Answer the macOS prompt to continue." = "Ответьте на запрос macOS, чтобы продолжить.";
+"Typed requests still work." = "Текстовые запросы работают.";
+"Reconnecting…" = "Переподключаю…";
+"Check your Jev key in Settings." = "Проверьте ключ Jev в настройках.";
+"Hold Fn to try again" = "Зажмите Fn, чтобы попробовать снова";
+"Review your words, then send" = "Проверьте текст и отправьте";
+"Release Fn to queue" = "Отпустите Fn: в очередь";
+"Say ‘end command’ to send" = "Скажите «конец команды»";
+"Pause to send" = "Пауза отправит запрос";
+"Microphone unavailable" = "Микрофон недоступен";
+"Reconnecting the microphone" = "Переподключаю микрофон";
+"Jev billing problem" = "Проблема с оплатой Jev";
+"%lld screenshots" = "Скриншотов: %lld";
+"Couldn't complete the request" = "Не удалось выполнить запрос";
+"%lld today · the latest is at left" = "%lld за сегодня · последний слева";
+"Command-line tools" = "Инструменты командной строки";
+"Local speech (Whisper)" = "Локальное распознавание (Whisper)";
+"Answers" = "Ответы";
+"Jev actions" = "Действия Jev";
+"Diagnostics" = "Диагностика";
+"Model: %@ via %@" = "Модель: %@ через %@";

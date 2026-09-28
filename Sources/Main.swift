@@ -51,10 +51,13 @@ final class CommandBarPanel: NSPanel {
         overlay.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         overlay.tabbingMode = .disallowed
         overlay.delegate = self
-        overlay.contentView = NSHostingView(rootView: CommandBarView(model: model,
+        let commandHost = NSHostingView(rootView: CommandBarView(model: model,
             openSettings: { [weak self] in self?.showSettings() },
             releaseKeyboard: { [weak self] in self?.releaseBarKeyboard() },
             resize: { [weak self] size in self?.resizeCommandSurface(to: size) }, limits: surfaceLimits))
+        // The panel reports its own size; the window must not follow SwiftUI's fitting size mid-animation.
+        commandHost.sizingOptions = []
+        overlay.contentView = commandHost
         model.showAnswer = { [weak self] in self?.presentAnswer() }
         model.hideAnswer = { [weak self] in
             guard let self else { return }
@@ -123,30 +126,40 @@ final class CommandBarPanel: NSPanel {
     /// Menu bar controls for the command bar, brain, and listening preferences.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        func add(_ title: String, _ selector: Selector?, key: String = "", state: Bool? = nil, id: String? = nil, indent: Bool = false) {
+        @discardableResult
+        func add(_ title: String, _ selector: Selector?, key: String = "", state: Bool? = nil, id: String? = nil, to target: NSMenu? = nil) -> NSMenuItem {
             let item = NSMenuItem(title: NSLocalizedString(title, comment: "Menu bar item"), action: selector, keyEquivalent: key)
             item.target = self; item.representedObject = id; item.isEnabled = selector != nil
             if let state { item.state = state ? .on : .off }
-            if indent { item.indentationLevel = 1 }
-            menu.addItem(item)
+            (target ?? menu).addItem(item)
+            return item
         }
         add("Show command bar", #selector(showCommandCenter))
         add("Settings…", #selector(showSettings), key: ",")
         if model.agentDashboardAvailable { add("Agent dashboard", #selector(openAgentDashboard)) }
         menu.addItem(.separator())
-        add("Brain", nil)
+        // One line for the brain; the choices live in a submenu.
+        let brains = NSMenu()
         for choice in BrainChoice.all {
             let blocked = choice.codex && CodexBrain.binary() == nil
-            add(choice.name + "  ·  " + (blocked ? "Codex CLI not found" : choice.short), blocked ? nil : #selector(pickBrain(_:)), state: model.brainModel == choice.id, id: choice.id, indent: true)
+            add(choice.name + "  ·  " + (blocked ? "Codex CLI not found" : choice.short), blocked ? nil : #selector(pickBrain(_:)), state: model.brainModel == choice.id, id: choice.id, to: brains)
         }
+        let brainItem = NSMenuItem(title: NSLocalizedString("Brain", comment: "Menu bar item") + ": " + (model.brainEnabled ? model.brainChoice.name : NSLocalizedString("No brain", comment: "Menu bar item")), action: nil, keyEquivalent: "")
+        brainItem.submenu = brains
+        menu.addItem(brainItem)
         add("Start new conversation", #selector(resetConversation))
-        add("Check a recording…", #selector(checkRecording))
-        add("Run commands from a recording…", #selector(runRecording))
         menu.addItem(.separator())
         add("Speak answers", #selector(toggleVoiceAnswers), state: model.voiceFeedback)
         add("Continuous listening", #selector(toggleContinuous), state: model.continuousListening)
         add("Listen for one command (⌥ Space), or hold Fn", #selector(listen))
         menu.addItem(.separator())
+        // Recording replays are for testing speech, so they stay out of the main list.
+        let tools = NSMenu()
+        add("Check a recording…", #selector(checkRecording), to: tools)
+        add("Run commands from a recording…", #selector(runRecording), to: tools)
+        let toolsItem = NSMenuItem(title: NSLocalizedString("Diagnostics", comment: "Menu bar item"), action: nil, keyEquivalent: "")
+        toolsItem.submenu = tools
+        menu.addItem(toolsItem)
         add("Hide command bar", #selector(hideCommandBar))
         add("Quit Conductor", #selector(quit), key: "q")
     }
@@ -224,7 +237,10 @@ final class CommandBarPanel: NSPanel {
         guard !NSEqualRects(frame, overlay.frame) else { return }
         resizingSurface = true
         overlay.setFrame(frame, display: true)
+        overlay.invalidateShadow()
         resizingSurface = false
+        // The drawer animates inside the resized window; redraw the shadow once it settles.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak overlay] in overlay?.invalidateShadow() }
     }
     func windowDidMove(_ notification: Notification) {
         guard let moved = notification.object as? NSWindow, moved === overlay, !resizingSurface else { return }
