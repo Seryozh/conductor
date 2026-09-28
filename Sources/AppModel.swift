@@ -1757,3 +1757,15 @@ private func refreshLimitShare() {
 
 
 }
+
+extension AppModel {
+    /// UI gallery only (`--render-ui-gallery`): stop this model's timers and stage its voice
+    /// session and Jev history without the microphone, network or saved settings.
+    func stageForGallery(micOn: Bool = false, queued: [String] = [], jevCalls: [JevCallRecord] = []) {
+        permissionTimer?.invalidate(); permissionTimer = nil
+        agentStatusTimer?.invalidate(); agentStatusTimer = nil
+        if micOn { session.start() }
+        for command in queued { _ = session.acceptTyped(command) }
+        for call in jevCalls { jevHistory.receive(call) }
+    }
+}

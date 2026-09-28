@@ -255,6 +255,7 @@ final class CommandBarPanel: NSPanel {
               Control it:     Conductor --command | --press | --store-key
               Test it:        Conductor --self-test | --activity-test | --whisper-test | --brain-runtime-test
                               Conductor --speech-runtime-test file [--release-during-rotation] | --render-ui-fixtures folder
+                              Conductor --render-ui-gallery folder [--language ru]
             """)
         }
         if arguments.contains("--store-key") { exit(LocalControlCLI.storeKey()) }
@@ -347,6 +348,11 @@ final class CommandBarPanel: NSPanel {
                 } catch { print("FAIL: " + error.localizedDescription); exit(1) }
             }
             NSApplication.shared.run(); return
+        }
+        if let flag = arguments.firstIndex(of: "--render-ui-gallery"), arguments.count > flag + 1 {
+            let language = arguments.firstIndex(of: "--language").flatMap { arguments.count > $0 + 1 ? arguments[$0 + 1] : nil } ?? "en"
+            do { try UIGallery.run(URL(fileURLWithPath: arguments[flag + 1]), language: language); exit(0) }
+            catch { print("FAIL: " + error.localizedDescription); exit(1) }
         }
         if let flag = arguments.firstIndex(of: "--render-ui-fixtures"), arguments.count > flag + 1 {
             do { try UIRegressionFixtures.run(URL(fileURLWithPath: arguments[flag + 1])); exit(0) }
