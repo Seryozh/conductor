@@ -52,8 +52,22 @@ enum KeyStore {
             kSecUseAuthenticationContext as String: context]
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+              let data = result as? Data, let key = String(data: data, encoding: .utf8) else { return nil }
+        openAccessIfNeeded(key)
+        return key
+    }
+    /// Keychain binds a self-signed app's item to that exact binary, so every rebuild used to
+    /// raise the "Always Allow" password dialog (Sergey, 2026-09-28) and unattended work stopped.
+    /// Once this build can read the item, store it again with access open to every application.
+    private static let openAccessMarker = "keychainOpenAccess"
+    private static func openAccessIfNeeded(_ key: String) {
+        guard !UserDefaults.standard.bool(forKey: openAccessMarker) else { return }
+        if (try? save(key)) != nil { UserDefaults.standard.set(true, forKey: openAccessMarker) }
+    }
+    /// Access object that lets any application read the item without a dialog.
+    private static func openAccess() -> SecAccess? {
+        var access: SecAccess?
+        return SecAccessCreate("Jev Voice by TypeSafe" as CFString, nil, &access) == errSecSuccess ? access : nil
     }
     static func save(_ key: String) throws {
         let clean = key.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -64,27 +78,19 @@ enum KeyStore {
             kSecAttrService as String: service, kSecAttrAccount as String: "api-key",
             kSecUseAuthenticationContext as String: context]
         let data = Data(clean.utf8)
-        var accessQuery = query
-        accessQuery[kSecReturnData as String] = true
-        accessQuery[kSecMatchLimit as String] = kSecMatchLimitOne
-        var existing: CFTypeRef?
-        let readable = SecItemCopyMatching(accessQuery as CFDictionary, &existing) == errSecSuccess
-        // An app rebuilt with a new signing identity can update an old item but
-        // still cannot read it. Replace only this app's own item when saving a
-        // freshly supplied key so Keychain binds access to the current identity.
-        if !readable {
-            let removal = SecItemDelete(query as CFDictionary)
-            guard removal == errSecSuccess || removal == errSecItemNotFound else {
-                throw VoiceError.message("Keychain could not replace this app's key (\(removal)).")
-            }
+        // Replace the item rather than update it: the stored item may carry the old access list
+        // bound to one binary, and only a fresh item takes the open access object below.
+        // An app rebuilt with a new signing identity can delete its own item even when it
+        // cannot read it.
+        let removal = SecItemDelete(query as CFDictionary)
+        guard removal == errSecSuccess || removal == errSecItemNotFound else {
+            throw VoiceError.message("Keychain could not replace this app's key (\(removal)).")
         }
-        var status = readable ? SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary) : errSecItemNotFound
-        if status == errSecItemNotFound {
-            var add = query
-            add[kSecValueData as String] = data
-            add[kSecAttrLabel as String] = "Jev Voice by TypeSafe"
-            status = SecItemAdd(add as CFDictionary, nil)
-        }
+        var add = query
+        add[kSecValueData as String] = data
+        add[kSecAttrLabel as String] = "Jev Voice by TypeSafe"
+        if let access = openAccess() { add[kSecAttrAccess as String] = access }
+        let status = SecItemAdd(add as CFDictionary, nil)
         guard status == errSecSuccess else { throw VoiceError.message("Keychain could not save the key (\(status)). If you rebuilt the app, approve its access in Keychain Access, then try again.") }
     }
 }
