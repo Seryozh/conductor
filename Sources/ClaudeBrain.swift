@@ -70,7 +70,7 @@ struct BrainChoice: Identifiable, Equatable {
 
     static let opus = BrainChoice(id: "opus", model: "claude-opus-5-5", name: "Claude Opus 5.5", short: "Claude Code subscription",
         spoken: ["opus", "claude"])
-    static let sonnet = BrainChoice(id: "sonnet", model: "claude-sonnet-5-5", name: "Claude Sonnet 5.5", short: "Claude Code subscription",
+    static let sonnet = BrainChoice(id: "sonnet", model: "claude-sonnet-5-5", name: "Claude Sonnet 5.5", short: "Claude Code subscription", effort: "high",
         spoken: ["sonnet"])
     static let astra = BrainChoice(id: "astra", model: "gpt-6-astra", name: "GPT-6 Astra", short: "Codex on your ChatGPT plan", codex: true,
         spoken: ["astra"])
@@ -329,7 +329,7 @@ final class ClaudeBrain: @unchecked Sendable, BrainPlanner {
         task.executableURL = binary
         task.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
         task.environment = wanted.environment()
-        task.arguments = ["-p", "--model", wanted.model, "--effort", "low",
+        task.arguments = ["-p", "--model", wanted.model, "--effort", wanted.effort,
             "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
             // Full machine access, without a per-action approval queue.
             "--permission-mode", "bypassPermissions", "--setting-sources", "", "--no-session-persistence",
