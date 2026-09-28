@@ -15,8 +15,10 @@ enum OpenApps {
             if app.processIdentifier == front { notes.append("front") }
             if app.isHidden { notes.append("hidden") }
             let titles = windowTitles(app)
-            return "- " + name(app) + (notes.isEmpty ? "" : " (" + notes.joined(separator: ", ") + ")")
-                + (titles.isEmpty ? "" : ": " + titles.joined(separator: ", "))
+            var line = "- " + name(app)
+            if !notes.isEmpty { line += " (" + notes.joined(separator: ", ") + ")" }
+            if !titles.isEmpty { line += ": " + titles.joined(separator: ", ") }
+            return line
         }
         let menuBar = running.filter { $0.activationPolicy == .accessory && !($0.bundleIdentifier ?? "").hasPrefix("com.apple.") }.compactMap(\.localizedName)
         return "Open apps (Dock), front first:\n" + lines.joined(separator: "\n")

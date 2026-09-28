@@ -1011,6 +1011,17 @@ struct LimitShareView: View {
     private func number(_ value: Double) -> String {
         String(format: value >= 10 ? "%.0f" : value >= 1 ? "%.1f" : value >= 0.1 ? "%.2f" : "%.3f", value)
     }
+    private func summary(_ share: LocalIntegrations.LimitShare) -> String {
+        var text = String(format: NSLocalizedString("All sessions: %@%%. Conductor: ≈%@%%.", comment: "Estimated usage"), number(share.fiveHour), number(share.jevPercent))
+        if let resets = share.resets {
+            let time = DateFormatter.localizedString(from: resets, dateStyle: .none, timeStyle: .short)
+            text += " " + String(format: NSLocalizedString("Resets at %@.", comment: "Usage reset"), time)
+        }
+        if let week = share.week {
+            text += " " + String(format: NSLocalizedString("Weekly usage: %@%%.", comment: "Weekly usage"), number(week))
+        }
+        return text
+    }
     var body: some View {
         if let share = model.limitShare {
             VStack(alignment: .leading, spacing: 6) {
@@ -1026,9 +1037,7 @@ struct LimitShareView: View {
                         Rectangle().fill(Color.white).frame(width: max(0, width * command)).offset(x: max(0, width * (app - command)))
                     }
                 }.frame(height: 7)
-                Text(String(format: NSLocalizedString("All sessions: %@%%. Conductor: ≈%@%%.", comment: "Estimated usage"), number(share.fiveHour), number(share.jevPercent))
-                     + (share.resets.map { " " + String(format: NSLocalizedString("Resets at %@.", comment: "Usage reset"), DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .short)) } ?? "")
-                     + (share.week.map { " " + String(format: NSLocalizedString("Weekly usage: %@%%.", comment: "Weekly usage"), number($0)) } ?? ""))
+                Text(summary(share))
                     .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                 Text("Estimated from local session costs. Account use on other devices can affect this estimate.")
                     .font(.system(size: 10)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
