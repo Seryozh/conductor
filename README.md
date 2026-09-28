@@ -59,7 +59,7 @@ bash build.sh
 open dist/Conductor.app
 ```
 
-The build uses Swift and Apple frameworks only, with no packages to install. In Settings → **Connections**, pick your CLI, paste the Jev key under **Jev action selector** and click **Check connection**. The key is stored in macOS Keychain. If Conductor can't find your CLI, set its path in **Advanced → CLI and local speech paths**.
+The build uses Swift and Apple frameworks only, with no packages to install. In Settings → **Connections**, pick your CLI, paste the Jev key under **Jev action selector** and click **Check connection**. The key is saved in a file only your user can read. If Conductor can't find your CLI, set its path in **Advanced → CLI and local speech paths**.
 
 ### 4. Grant permissions
 

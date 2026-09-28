@@ -42,56 +42,40 @@ enum OpenRouterBilling {
 
 enum KeyStore {
     static var service: String { "ai.conductor.public.\(Bundle.main.bundleIdentifier ?? "app")" }
+    /// The key lives in a file only this user can read. Keychain bound a self-signed app's item
+    /// to one exact binary, so every rebuild raised the "Always Allow" password dialog and
+    /// unattended work stopped (2026-09-28).
+    static var fileURL: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return base.appendingPathComponent(Bundle.main.bundleIdentifier ?? "ai.conductor.public").appendingPathComponent("jev-key")
+    }
     static func read() -> String? {
-        // Never block application startup behind an OS Keychain dialog.
-        let context = LAContext()
-        context.interactionNotAllowed = true
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service, kSecAttrAccount as String: "api-key",
-            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationContext as String: context]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data, let key = String(data: data, encoding: .utf8) else { return nil }
-        openAccessIfNeeded(key)
-        return key
-    }
-    /// Keychain binds a self-signed app's item to that exact binary, so every rebuild used to
-    /// raise the "Always Allow" password dialog (Sergey, 2026-09-28) and unattended work stopped.
-    /// Once this build can read the item, store it again with access open to every application.
-    private static let openAccessMarker = "keychainOpenAccess"
-    private static func openAccessIfNeeded(_ key: String) {
-        guard !UserDefaults.standard.bool(forKey: openAccessMarker) else { return }
-        if (try? save(key)) != nil { UserDefaults.standard.set(true, forKey: openAccessMarker) }
-    }
-    /// Access object that lets any application read the item without a dialog.
-    private static func openAccess() -> SecAccess? {
-        var access: SecAccess?
-        return SecAccessCreate("Jev Voice by TypeSafe" as CFString, nil, &access) == errSecSuccess ? access : nil
+        if let data = try? Data(contentsOf: fileURL),
+           let key = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty { return key }
+        // A key saved by an earlier build in Keychain moves into the file once.
+        guard let legacy = legacyKeychainRead() else { return nil }
+        try? write(legacy)
+        return legacy
     }
     static func save(_ key: String) throws {
         let clean = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard JevProvider.detect(key: clean) != nil, !clean.contains(where: \.isWhitespace) else { throw VoiceError.message("Enter a TypeSafe or OpenRouter API key.") }
-        let context = LAContext()
-        context.interactionNotAllowed = true
+        do { try write(clean) } catch { throw VoiceError.message("Could not save the key to \(fileURL.path): \(error.localizedDescription)") }
+        _ = SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "api-key"] as CFDictionary)
+    }
+    private static func write(_ key: String) throws {
+        let dir = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try Data(key.utf8).write(to: fileURL, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    }
+    private static func legacyKeychainRead() -> String? {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: "api-key",
-            kSecUseAuthenticationContext as String: context]
-        let data = Data(clean.utf8)
-        // Replace the item rather than update it: the stored item may carry the old access list
-        // bound to one binary, and only a fresh item takes the open access object below.
-        // An app rebuilt with a new signing identity can delete its own item even when it
-        // cannot read it.
-        let removal = SecItemDelete(query as CFDictionary)
-        guard removal == errSecSuccess || removal == errSecItemNotFound else {
-            throw VoiceError.message("Keychain could not replace this app's key (\(removal)).")
-        }
-        var add = query
-        add[kSecValueData as String] = data
-        add[kSecAttrLabel as String] = "Jev Voice by TypeSafe"
-        if let access = openAccess() { add[kSecAttrAccess as String] = access }
-        let status = SecItemAdd(add as CFDictionary, nil)
-        guard status == errSecSuccess else { throw VoiceError.message("Keychain could not save the key (\(status)). If you rebuilt the app, approve its access in Keychain Access, then try again.") }
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }
 

@@ -13,7 +13,7 @@ The build is unsigned by default. The release workflow packages the app as a ZIP
 - `--self-test` exercises request parsing, completion checks, restored providers and models, command journaling, action catalogues, speech buffering, local Whisper formatting, continuous listening, and text-entry fixtures.
 - `--activity-test` exercises TypeSafe API response handling with local HTTP fixtures. It does not need a real key.
 - `--whisper-test file.wav` starts the configured local Whisper server, waits for its own listener, transcribes a 16 kHz mono 16-bit WAV, and stops that server. It requires Whisper to be enabled in Settings.
-- `--router-test` sends synthetic decision requests to TypeSafe and requires a key saved in macOS Keychain. It uses paid input tokens.
+- `--router-test` sends synthetic decision requests to TypeSafe and requires a saved Jev key. It uses paid input tokens.
 - `--speech-file-test` accepts a local recording for an Apple Speech transcription check. A recording is not included.
 - `--brain-runtime-test` runs local model-process fixtures for timeouts, Stop and the Codex usage reader. No model is called.
 - `--speech-runtime-test file` replays a recording in real time through the live speech pipeline and expects one complete submission; `--release-during-rotation` releases the key while a recognition request is rotating. It must run as the signed app (`open -n -W --stdout out.txt --stderr log.txt Conductor.app --args ...`) so Speech Recognition permission applies. A recording is not included.

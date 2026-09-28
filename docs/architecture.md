@@ -26,7 +26,7 @@ The brain can also act directly through its own CLI tools. The Jev action catalo
 
 The CLI is launched with per-action approval and sandbox checks disabled. Conductor does not ask you to approve each step. macOS permissions still apply, including Microphone, Speech Recognition, Accessibility, Screen Recording, and Automation.
 
-Whisper audio stays on the Mac. Apple Speech may use Apple’s network service when on-device recognition is unavailable. The selected CLI provider receives the request, screen text, and screenshots when needed. The selected Jev provider receives the request and text context used to choose a UI action, not audio or screenshots. With OpenRouter selected, that service forwards the request to TypeSafe. The provider key is stored in macOS Keychain. Diagnostic logging is opt-in and may contain screen text and commands.
+Whisper audio stays on the Mac. Apple Speech may use Apple’s network service when on-device recognition is unavailable. The selected CLI provider receives the request, screen text, and screenshots when needed. The selected Jev provider receives the request and text context used to choose a UI action, not audio or screenshots. With OpenRouter selected, that service forwards the request to TypeSafe. The provider key is saved in a file only your user can read, in the app's Application Support folder. Diagnostic logging is opt-in and may contain screen text and commands.
 
 The Jev activity panel holds up to 300 API call records in memory for the current app session. Records can contain the request, screen text, action choices, and API response. They are not written to disk and disappear when the app closes. Opt-in diagnostic logs are separate files under macOS Application Support.
 

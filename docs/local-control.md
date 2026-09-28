@@ -37,7 +37,7 @@ The transport uses `~/Library/Application Support/<bundle-id>/LocalControl` with
 
 ## Key entry
 
-`--store-key` reads hidden input from a terminal, or a key supplied through standard input when no terminal is attached. It accepts no key argument and prints no key. It saves only to this app's existing macOS Keychain service. Never place a key in shell history, logs, command arguments, a public source file or a patch. Saving a key does not grant Mac permissions.
+`--store-key` reads hidden input from a terminal, or a key supplied through standard input when no terminal is attached. It accepts no key argument and prints no key. It saves the key to the app's own key file, readable only by your user. Never place a key in shell history, logs, command arguments, a public source file or a patch. Saving a key does not grant Mac permissions.
 
 ## Verification
 
