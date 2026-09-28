@@ -8,9 +8,11 @@
 
 Conductor lets you run your Mac by voice. You hold Fn, say what you want, and Claude Code or Codex carries it out across your apps. When a task needs a specific button or field, TypeSafe's Jev picks it.
 
-I built it on top of [Jev Voice by TypeSafe](https://github.com/ronadin2002/jev-cua) because I wanted to run my Claude and Codex sessions, and the rest of my Mac, by voice without approving every step. 
+I built it on top of [Jev Voice by TypeSafe](https://github.com/ronadin2002/jev-cua) because I wanted to run my Claude and Codex sessions, and the rest of my Mac, by voice without approving every step.
 
-![Four Conductor panels: listening to "Open Safari and show my calendar", Claude Sonnet 5 thinking, Jev clicking Calendar, and the answer "Done. Safari is open with your calendar."](assets/flow.png)
+<!-- Demo video: upload it through GitHub's web editor and paste its user-attachments link on its own line here. -->
+
+![Four Conductor panels: listening to "Open Safari and show my calendar", Claude Sonnet 5.5 thinking, Jev clicking Calendar, and the answer "Done. Safari is open with your calendar."](assets/flow.png)
 
 ## What it does
 
