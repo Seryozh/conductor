@@ -31,7 +31,7 @@ Claude's live check is waiting for the account's weekly limit to reset. Runtime 
 - `--speech-runtime-test file` replays a recording in real time through the live speech pipeline and expects one complete submission; `--release-during-rotation` releases the key while a recognition request is rotating. It must run as the signed app (`open -n -W --stdout out.txt --stderr log.txt Conductor.app --args ...`) so Speech Recognition permission applies. A recording is not included.
 - `--render-ui-fixtures folder` renders sample command-panel states to PNG files and checks their sizes.
 - `--codex-limits` prints the signed-in Codex subscription's remaining usage without a model request.
-- `--render-ui-gallery folder [--language ru]` renders every command-panel, settings, practice and menu state with sample data to numbered PNG files and `gallery.json`; run it as the signed app. `python3 scripts/ui_gallery_grid.py folder out` composes them into contact sheets (needs Pillow).
+- `--render-ui-gallery folder [--language ru]` renders every command-panel, settings, practice and menu state with sample data to numbered PNG files and `gallery.json`; run it as the signed app. `python3 scripts/ui_gallery_grid.py folder out` composes them into contact sheets, and `python3 scripts/readme_flow.py folder` rebuilds the README's `assets/flow.png` from the gallery's README group (both need Pillow).
 
 Check that `xcode-select -p` points to installed Xcode Command Line Tools before building. Use a distinct bundle identifier for a separate preview, and keep only one live microphone listener running.
 

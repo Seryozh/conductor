@@ -54,7 +54,7 @@ private enum Sample {
         ]
         try commandBar()
         try settings()
-        if !coreOnly { try practice(); try menus(); try artwork() }
+        if !coreOnly { try practice(); try menus(); try artwork(); try readme() }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         try encoder.encode(entries).write(to: directory.appendingPathComponent("gallery.json"))
         print("Rendered \(entries.count) states into \(directory.path)")
@@ -72,13 +72,14 @@ private enum Sample {
 
     // MARK: Rendering
 
-    private static func save<V: View>(_ view: V, size: NSSize, group: String, name: String, title: String, when: String, backdrop: Bool, core: Bool) throws {
+    private static func save<V: View>(_ view: V, size: NSSize, group: String, name: String, title: String, when: String, backdrop: Bool, core: Bool,
+                                      backdropColor: Color = Color(red: 0.40, green: 0.42, blue: 0.46)) throws {
         guard !coreOnly || core else { return }
         let file = String(format: "%03d-%@.png", entries.count + 1, name)
         let pad: CGFloat = backdrop ? 28 : 0
         let canvas = NSSize(width: size.width + pad * 2, height: size.height + pad * 2)
         let content = ZStack {
-            if backdrop { Color(red: 0.40, green: 0.42, blue: 0.46) }
+            if backdrop { backdropColor }
             view.frame(width: size.width, height: size.height)
                 .shadow(color: .black.opacity(backdrop ? 0.4 : 0), radius: 16, y: 6)
         }.frame(width: canvas.width, height: canvas.height).environment(\.locale, Locale(identifier: language))
@@ -96,12 +97,13 @@ private enum Sample {
     }
 
     private static func bar(_ name: String, _ title: String, _ when: String, _ m: AppModel, typing: Bool = false, details: Bool = false,
-                            collapsed: Bool = false, width: CGFloat = 600, height: CGFloat = 520, core: Bool = false) throws {
+                            collapsed: Bool = false, width: CGFloat = 600, height: CGFloat = 520, core: Bool = false,
+                            group: String = "Command panel", backdropColor: Color = Color(red: 0.40, green: 0.42, blue: 0.46)) throws {
         let limits = CommandSurfaceLimits(); limits.width = width; limits.height = height
         let size = CommandBarView.preferredSize(model: m, typing: typing, details: details, maximumHeight: height, maximumWidth: width, attentionCollapsed: collapsed)
         let view = CommandBarView(model: m, openSettings: {}, releaseKeyboard: {}, initiallyEditing: typing, initiallyShowsDetails: details,
                                   limits: limits, initiallyAttentionCollapsed: collapsed)
-        try save(view, size: size, group: "Command panel", name: "panel-" + name, title: title, when: when, backdrop: true, core: core)
+        try save(view, size: size, group: group, name: "panel-" + name, title: title, when: when, backdrop: true, core: core, backdropColor: backdropColor)
     }
 
     // MARK: Command panel
@@ -334,5 +336,27 @@ private enum Sample {
         }.padding(20).background(Palette.panel, in: RoundedRectangle(cornerRadius: 14))
         try save(sheet, size: NSSize(width: 7 * 132 + 6 * 14 + 40, height: 97 + 8 + 14 + 40), group: "Artwork", name: "artwork-all-states",
                  title: "Conductor artwork for each state (posters)", when: "Resources/ConductorStates: one looping silent video per state (posters shown here); 220 ms crossfade between states.", backdrop: true, core: false)
+    }
+
+    // MARK: README
+
+    /// One English request followed from start to finish on the README's dark background (14, 14, 14).
+    /// `scripts/readme_flow.py` joins these into `assets/flow.png`.
+    private static func readme() throws {
+        let dark = Color(red: 14/255, green: 14/255, blue: 14/255)
+        let command = Sample.shortCommand
+        func step(_ name: String, _ title: String, _ m: AppModel) throws {
+            try bar("readme-" + name, title, "README flow: " + title.lowercased() + ".", m, group: "README", backdropColor: dark)
+        }
+        let listening = model(); listening.holdingToTalk = true; listening.phase = "Listening"; listening.liveTranscript = command; listening.level = 0.8
+        try step("listening", "Listening", listening)
+        func busy(_ phase: String, _ detail: String) -> AppModel {
+            let m = model(); m.busy = true; m.phase = phase; m.detail = detail; m.transcript = command; return m
+        }
+        try step("thinking", "Thinking", busy("Thinking", "Claude Sonnet 5 is thinking…"))
+        try step("acting", "Acting", busy("Acting", "Click Calendar"))
+        let done = model(); done.phase = "Done"; done.transcript = command; done.answerText = Sample.shortAnswer; done.modelLabel = "Claude Sonnet 5"
+        done.usageLine = Sample.usageLine; done.dayLine = Sample.dayLine; done.contextUsed = 11_664
+        try step("answer", "Answer", done)
     }
 }

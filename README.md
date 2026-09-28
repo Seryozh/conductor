@@ -1,18 +1,31 @@
-# Conductor
+<p align="center">
+  <img src="assets/banner.png" alt="Conductor: full-access voice control for macOS. Launch artwork, not a screenshot of the app." width="100%">
+</p>
 
-Conductor is a full-access macOS voice-control fork based on Jev Voice by TypeSafe.
+<p align="center">
+  Hold Fn, say a task, and Claude Code or Codex carries it out across your Mac's apps.<br>
+  TypeSafe's Jev picks the button or field when a task needs one.
+</p>
 
-This source includes Claude Code and Codex CLI brain options, plus optional local Whisper transcription.
+<p align="center">
+  macOS 14 or later · Apple silicon · built from source · based on <a href="https://github.com/ronadin2002/jev-cua">Jev Voice by TypeSafe</a>
+</p>
 
-![Conductor launch artwork. This illustration is not a screenshot of the app.](assets/social-preview.png)
-
-[Quick start](#quick-start) · [How it works](#how-it-works) · [Full access](#full-access) · [Cost](#what-costs-money)
+<p align="center">
+  <a href="#quick-start">Quick start</a> · <a href="#how-it-works">How it works</a> · <a href="#full-access">Full access</a> · <a href="#what-costs-money">Cost</a> · <a href="#faq">FAQ</a>
+</p>
 
 ## Demo
 
 <!-- demo:start -->
-The voice demo is still pending. In a live check of this public build, Codex opened Calculator and completed `(6 + 7) × 5`, with `65` visible on screen. Claude's live check is waiting for the account's weekly limit to reset. The 30–40 second recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
+The voice demo is still pending. In a live check of this public build, Codex opened Calculator and completed `(6 + 7) × 5`, with `65` visible on screen, and commands ran on Claude Sonnet 5 through Claude Code. The recording plan is in [demo/recording-plan.md](demo/recording-plan.md).
 <!-- demo:end -->
+
+## One request, start to finish
+
+![Four Conductor panels: listening to "Open Safari and show my calendar", Claude Sonnet 5 thinking, Jev clicking Calendar, and the answer "Done. Safari is open with your calendar."](assets/flow.png)
+
+<sub>Rendered from the app's own SwiftUI views with sample text (`Conductor --render-ui-gallery`, then `scripts/readme_flow.py`). Not a screenshot of a live task. The conductor figure changes pose with each state.</sub>
 
 ## What is different
 
