@@ -251,9 +251,10 @@ final class CommandBarPanel: NSPanel {
             print("""
             Conductor
               Launch the app: Conductor [--diagnostics]
-              Inspect it:     Conductor --status | --ui | --look | --look-app
+              Inspect it:     Conductor --status | --ui | --look | --look-app | --codex-limits
               Control it:     Conductor --command | --press | --store-key
-              Test it:        Conductor --self-test | --activity-test | --whisper-test
+              Test it:        Conductor --self-test | --activity-test | --whisper-test | --brain-runtime-test
+                              Conductor --speech-runtime-test file [--release-during-rotation] | --render-ui-fixtures folder
             """)
         }
         if arguments.contains("--store-key") { exit(LocalControlCLI.storeKey()) }
@@ -319,6 +320,45 @@ final class CommandBarPanel: NSPanel {
             NSApplication.shared.run(); return
         }
         if CommandLine.arguments.contains("--self-test") { SelfTests.run(); exit(0) }
+        if arguments.contains("--brain-runtime-test") {
+            Task { @MainActor in
+                do { try await BrainRuntimeTests.run(); exit(0) }
+                catch { print("FAIL: " + error.localizedDescription); exit(1) }
+            }
+            CFRunLoopRun(); return
+        }
+        if let flag = arguments.firstIndex(of: "--speech-runtime-test"), arguments.count > flag + 1 {
+            _ = NSApplication.shared
+            NSApp.setActivationPolicy(.accessory)
+            Task { @MainActor in
+                do { try SpeechRuntimeTest.run(URL(fileURLWithPath: arguments[flag + 1]), releaseDuringRotation: arguments.contains("--release-during-rotation")) }
+                catch { print("FAIL: " + error.localizedDescription); exit(1) }
+            }
+            NSApplication.shared.run(); return
+        }
+        if let flag = arguments.firstIndex(of: "--codex-session-test"), arguments.count > flag + 1 {
+            _ = NSApplication.shared
+            Task { @MainActor in
+                do {
+                    guard let thread = CodexSessions.find(arguments[flag + 1]) else { throw VoiceError.message("Task not found.") }
+                    try await CodexSessions.open(thread)
+                    guard CodexSessions.titleOnScreen() == thread.title, CodexSessions.composerText() != nil else { throw VoiceError.message("The task or its composer could not be confirmed.") }
+                    print("PASS: the intended task and composer are confirmed in the main window despite other hidden web areas."); exit(0)
+                } catch { print("FAIL: " + error.localizedDescription); exit(1) }
+            }
+            NSApplication.shared.run(); return
+        }
+        if let flag = arguments.firstIndex(of: "--render-ui-fixtures"), arguments.count > flag + 1 {
+            do { try UIRegressionFixtures.run(URL(fileURLWithPath: arguments[flag + 1])); exit(0) }
+            catch { print("FAIL: " + error.localizedDescription); exit(1) }
+        }
+        if arguments.contains("--codex-limits") {
+            Task {
+                do { print(try CodexAccount.summary(await CodexAccount.read())); exit(0) }
+                catch { print("FAILED: " + error.localizedDescription); exit(1) }
+            }
+            CFRunLoopRun(); return
+        }
         // What the brain sees of the open apps, and the real closing path, without the voice queue.
         if CommandLine.arguments.contains("--open-apps") { print(OpenApps.summary()); exit(0) }
         // Whisper through the app's own code path: --whisper-test file.wav (16 kHz mono 16-bit).

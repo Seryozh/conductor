@@ -9,7 +9,7 @@ enum Palette {
     static let line = Color(red: 55/255, green: 59/255, blue: 66/255)
     static let accent = Color(red: 1, green: 195/255, blue: 74/255)
     static let foreground = Color(red: 245/255, green: 241/255, blue: 232/255)
-    static let muted = Color(red: 181/255, green: 183/255, blue: 188/255)
+    static let muted = Color(red: 202/255, green: 204/255, blue: 208/255)
     static let danger = Color(red: 1, green: 121/255, blue: 117/255)
     static let success = Color(red: 151/255, green: 198/255, blue: 159/255)
 }
@@ -467,7 +467,7 @@ struct CommandBarView: View {
     let openSettings: () -> Void
     let releaseKeyboard: () -> Void
     let resize: (NSSize) -> Void
-    static let width: CGFloat = 360
+    static let width: CGFloat = 380
     static let railHeight: CGFloat = 132
 
     init(model: AppModel, openSettings: @escaping () -> Void, releaseKeyboard: @escaping () -> Void,
@@ -505,13 +505,13 @@ struct CommandBarView: View {
         model.phase == "Thinking" ? "Thinking" : "Acting"
     }
     private static func artworkWidth(for width: CGFloat) -> CGFloat {
-        width < 380 ? min(140, max(100, width - 212)) : 156
+        min(132, max(100, width - 212))
     }
     private static func answerFitsColumn(_ model: AppModel, details: Bool, attention: Bool, width: CGFloat) -> Bool {
         guard !details, !attention, model.answerText.count <= 180 else { return false }
         let column = width < 320 ? width - 32 : width - Self.artworkWidth(for: width) - 36
-        let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = 2
-        let text = NSAttributedString(string: model.answerText, attributes: [.font: NSFont.systemFont(ofSize: 15), .paragraphStyle: paragraph])
+        let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = AnswerView.lineSpacing
+        let text = NSAttributedString(string: model.answerText, attributes: [.font: AnswerView.textFont, .paragraphStyle: paragraph])
         return text.boundingRect(with: NSSize(width: max(100, column - 32), height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height <= 78
     }
     /// Content chooses the width. Only long content and typed input need a wider surface.
@@ -521,20 +521,20 @@ struct CommandBarView: View {
         let recognizing = model.phase == "Recognizing"
         let attention = needsAttention(model) && !attentionCollapsed && !model.busy && !capturing && !recognizing
         let answer = !model.answerText.isEmpty && !model.busy && !capturing && !recognizing
-        let simultaneousCapture = model.busy && (capturing || recognizing)
         let extendedCapture = (capturing || recognizing) && (model.busy || model.liveTranscript.count > 120)
         let extendedWork = model.busy && model.detail.count > 180
-        let answerWidth: CGFloat = model.answerText.count > 240 || details ? 540 : 500
-        let targetWidth: CGFloat = answer ? answerWidth : (typing || extendedWork || (extendedCapture && !simultaneousCapture)) ? 500 : simultaneousCapture ? 440 : (attention || model.busy || capturing || needsAttention(model)) ? 420 : Self.width
+        // State changes keep one width and one artwork size. Longer text grows
+        // vertically; the explicit editor alone requests extra horizontal space.
+        let targetWidth: CGFloat = typing ? 500 : Self.width
         let width = min(targetWidth, maximumWidth)
         let narrow = width < 320
         let columnWidth = max(120, width - (narrow ? 32 : Self.artworkWidth(for: width) + 36))
         let shortAnswer = answer && answerFitsColumn(model, details: details, attention: attention, width: width)
         let extendedAnswer = answer && !shortAnswer
-        func textHeight(_ text: String, size: CGFloat, width: CGFloat? = nil, maximum: CGFloat = 500) -> CGFloat {
+        func textHeight(_ text: String, size: CGFloat, width: CGFloat? = nil, maximum: CGFloat = 500, weight: NSFont.Weight = .regular) -> CGFloat {
             guard !text.isEmpty else { return 0 }
-            let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = size == 15 ? 2 : 3
-            let attributed = NSAttributedString(string: text, attributes: [.font: NSFont.systemFont(ofSize: size, weight: size >= 17 ? .semibold : .regular), .paragraphStyle: paragraph])
+            let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = size == 17 ? AnswerView.lineSpacing : 3
+            let attributed = NSAttributedString(string: text, attributes: [.font: NSFont.systemFont(ofSize: size, weight: weight), .paragraphStyle: paragraph])
             let measured = ceil(attributed.boundingRect(with: NSSize(width: width ?? columnWidth, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height) + 3
             return min(maximum, measured)
         }
@@ -544,21 +544,21 @@ struct CommandBarView: View {
             let setup = !model.keyConfigured || !model.accessibilityGranted
             message = 24 + 8 + textHeight(setup ? localized(setupMessage(model)) : model.detail, size: 12, maximum: 120)
         } else if shortAnswer {
-            message = max(24, textHeight(model.answerText, size: 15, width: max(100, columnWidth - 32))) + 8 + 18
+            message = max(24, textHeight(model.answerText, size: 17, width: max(100, columnWidth - 32))) + 8 + 18
         } else if extendedAnswer {
-            message = max(24, textHeight(model.transcript.isEmpty ? localized("Answer") : model.transcript, size: 13, maximum: 42))
+            message = max(42, textHeight(model.transcript.isEmpty ? localized("Answer") : model.transcript, size: 14, width: max(100, columnWidth - 32), maximum: 48, weight: .medium))
         } else if model.busy || capturing || recognizing {
             if model.busy {
                 if capturing { message += 15 + 7 }
-                if !model.transcript.isEmpty { message += textHeight(model.transcript, size: 11, maximum: 30) + 7 }
+                if !model.transcript.isEmpty { message += textHeight(model.transcript, size: 13, maximum: 40) + 7 }
                 let detail = model.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? localized(workFallback(model)) : extendedWork ? model.phase : model.detail
-                message += textHeight(detail, size: 17, maximum: 85)
+                message += textHeight(detail, size: 17, maximum: 85, weight: .semibold)
             }
             if (capturing || recognizing) && !model.busy {
                 if !model.liveTranscript.isEmpty && !extendedCapture {
-                    message += 15 + 6 + textHeight(model.liveTranscript, size: 17, maximum: 110)
+                    message += 15 + 6 + textHeight(model.liveTranscript, size: 17, maximum: 110, weight: .semibold)
                 } else { message += 22 }
-                message += 8 + textHeight(localized(recognizing ? "One moment…" : captureInstruction(model)), size: 11, maximum: 34)
+                message += 8 + textHeight(localized(recognizing ? "One moment…" : captureInstruction(model)), size: 13, maximum: 42)
             }
         } else { message = 22 + 6 + 30 }
         let hasStats = model.queuedCount > 0 || (model.busy && model.shotsThisCommand > 0)
@@ -585,10 +585,10 @@ struct CommandBarView: View {
         }
         if extendedCapture {
             let transcript = model.liveTranscript.isEmpty ? localized(recognizing ? "One moment…" : "Go ahead, I'm listening.") : model.liveTranscript
-            extensionHeight += 28 + textHeight(transcript, size: 18, width: max(120, width - 40), maximum: 260)
+            extensionHeight += 28 + textHeight(transcript, size: 18, width: max(120, width - 40), maximum: 260, weight: .semibold)
             if model.busy { extensionHeight += 15 + 8 + 8 + textHeight(localized(recognizing ? "Finishing your transcript" : captureInstruction(model)), size: 11, width: max(120, width - 40), maximum: 34) }
         }
-        if extendedWork { extensionHeight += 28 + textHeight(model.detail, size: 17, width: max(120, width - 40), maximum: 260) }
+        if extendedWork { extensionHeight += 28 + textHeight(model.detail, size: 17, width: max(120, width - 40), maximum: 260, weight: .semibold) }
         return (NSSize(width: width, height: min(maximumHeight, header + extensionHeight + footerHeight + editorHeight)), header, messageHeight)
     }
     static func preferredSize(model: AppModel, typing: Bool = false, details: Bool = false,
@@ -674,6 +674,7 @@ struct CommandBarView: View {
         .onAppear { resize(size) }
         .onChange(of: size) { _, value in resize(value) }
         .onChange(of: model.busy) { _, busy in if busy { editing = false } }
+        .onChange(of: model.reviewDraft) { _, _ in showEditor = true }   // shown, not focused: the user's app keeps the keyboard
         .onChange(of: attentionIdentity) { _, _ in attentionCollapsed = false }
         .onExitCommand { editing = false; showEditor = false; releaseKeyboard() }
     }
@@ -728,7 +729,7 @@ struct CommandBarView: View {
             if !extendedAnswer {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top, spacing: 8) {
-                        Text(model.answerText).font(.system(size: 15)).lineSpacing(2).textSelection(.enabled)
+                        Text(model.answerText).font(Font(AnswerView.textFont)).lineSpacing(AnswerView.lineSpacing).textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                         closeAnswer
@@ -740,7 +741,7 @@ struct CommandBarView: View {
                     Group {
                         if model.transcript.isEmpty { Text("Answer") }
                         else { Text(model.transcript) }
-                    }.font(.system(size: 13, weight: .medium)).lineLimit(2)
+                    }.font(.system(size: 14, weight: .medium)).lineLimit(2)
                     Spacer(minLength: 0)
                     closeAnswer
                 }
@@ -755,7 +756,7 @@ struct CommandBarView: View {
                                 Text("Listening to your next request").font(.system(size: 11)).foregroundStyle(Palette.muted)
                             }
                         }
-                        if !model.transcript.isEmpty { Text(model.transcript).font(.system(size: 11)).foregroundStyle(Palette.muted).lineLimit(2) }
+                        if !model.transcript.isEmpty { Text(model.transcript).font(.system(size: 13)).foregroundStyle(Palette.muted).lineLimit(2) }
                         Group {
                             if model.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { Text(LocalizedStringKey(Self.workFallback(model))) }
                             else { Text(extendedWork ? model.phase : model.detail) }
@@ -768,20 +769,20 @@ struct CommandBarView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         if !model.liveTranscript.isEmpty && !extendedCapture {
                             Text(LocalizedStringKey(recognizing ? "Recognizing" : model.busy ? "Listening to your next request" : "Listening"))
-                                .font(.system(size: 11)).foregroundStyle(Palette.muted)
+                                .font(.system(size: 13)).foregroundStyle(Palette.muted)
                             Text(model.liveTranscript).font(.system(size: 17, weight: .semibold)).textSelection(.enabled)
                         } else {
                             Text(LocalizedStringKey(recognizing ? "Recognizing" : model.busy ? "Listening to your next request" : "Listening"))
                                 .font(.system(size: 17, weight: .semibold))
                         }
                         Text(LocalizedStringKey(recognizing ? "One moment…" : Self.captureInstruction(model)))
-                            .font(.system(size: 11)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+                            .font(.system(size: 13)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
         } else {
             VStack(alignment: .leading, spacing: 6) {
-                Text(conductorState.presentationLabel).font(.system(size: 18, weight: .semibold))
+                Text(conductorState.presentationLabel).font(.system(size: 17, weight: .semibold))
                 Text(LocalizedStringKey(microphoneHint)).font(.system(size: 12)).foregroundStyle(Palette.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 if attentionCollapsed && attention {

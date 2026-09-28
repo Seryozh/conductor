@@ -46,6 +46,8 @@ final class SpeechEngine {
     var onLevel: ((Double) -> Void)?
     var onFinished: ((String) -> Void)?
     var onError: ((String) -> Void)?
+    /// Recognition stopped before submission. Keep this draft for explicit review.
+    var onInterrupted: ((String, String) -> Void)?
     var onDiagnostic: ((String) -> Void)?
     /// Word mode: text discarded by an explicit discard phrase.
     var onDiscarded: ((String) -> Void)?
@@ -57,6 +59,8 @@ final class SpeechEngine {
     /// The command's audio for Whisper (LocalWhisper.swift), recorded alongside Apple's recognizer.
     private let recorder = SpeechRecorder()
     private var delivery: Task<Void, Never>?
+    private var pendingDeliveries = 0
+    var finishingSubmission: Bool { (ending && submitAtEnd) || pendingDeliveries > 0 }
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var timer: Timer?
@@ -137,14 +141,10 @@ final class SpeechEngine {
         timer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
             guard let self, self.active, !self.ending, !self.suppressed else { return }
             guard self.replaying || self.engine.isRunning else {
-                self.cancel(); self.onError?("The audio device stopped or changed. Turn the mic on to reconnect."); return
+                self.interruptRecognition("The audio device stopped or changed. Turn the mic on to reconnect."); return
             }
             let now = Date().timeIntervalSinceReferenceDate
-            if let began = self.utterance.beganAt, now - began > (self.sendByWord ? 600 : 120) {
-                self.utterance.reset(); self.recorder.reset()
-                self.onError?("That request was too long. Nothing was run. Please give a shorter request.")
-                self.finishRequest(submit: false)
-            } else if self.utterance.discardRequested && now - self.utterance.lastTextAt >= 0.6 {
+            if self.utterance.discardRequested && now - self.utterance.lastTextAt >= 0.6 {
                 let dropped = self.utterance.text
                 self.discardAtEnd = true
                 self.finishRequest(submit: false)
@@ -160,7 +160,8 @@ final class SpeechEngine {
     /// recognizer, audio-level endpoint logic, request rotation and callbacks.
     /// This diagnostic mode never mixes the recording with the live microphone.
     func replay(_ url: URL, finished: @escaping () -> Void) throws {
-        guard speechGranted, isLocalAvailable else { throw VoiceError.message("On-device speech recognition needs permission.") }
+        guard speechGranted else { throw VoiceError.message("Speech Recognition is not authorized for this app process (status \(SFSpeechRecognizer.authorizationStatus().rawValue)).") }
+        guard isLocalAvailable else { throw VoiceError.message("On-device speech recognition is unavailable for the selected language.") }
         cancel()
         let file = try AVAudioFile(forReading: url)
         active = true; replaying = true
@@ -220,7 +221,9 @@ final class SpeechEngine {
                     let end = transcription.segments.last.map { $0.timestamp + $0.duration }
                     self.onDiagnostic?("span \(token): \(start ?? -1)...\(end ?? -1)")
                     self.utterance.recognize(transcription.formattedString, start: start, end: end, at: Date().timeIntervalSinceReferenceDate)
-                    if !self.utterance.text.isEmpty { self.consecutiveErrors = 0; self.recorder.markSpeaking() }
+                    if !transcription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        self.consecutiveErrors = 0; self.recorder.markSpeaking()
+                    }
                     self.onTranscript?(self.utterance.text)
                     if result.isFinal { self.onDiagnostic?("final \(token): \(result.bestTranscription.formattedString)"); self.completeRequest(token: token) }
                 } else if let error, !self.ending {
@@ -231,9 +234,11 @@ final class SpeechEngine {
                     }
                     self.consecutiveErrors += 1
                     if self.consecutiveErrors >= 3 {
-                        self.cancel(); self.onError?("The microphone stopped: \(error.localizedDescription)")
+                        self.interruptRecognition("Speech recognition stopped: \(error.localizedDescription)")
                     } else {
-                        self.utterance.reset(); self.recorder.reset() // Failed fragments must never execute.
+                        // Retain already recognized words across a recoverable request failure.
+                        // Rotation does not submit them; the user still decides when to finish.
+                        self.utterance.commitSegment()
                         self.finishRequest(submit: false)
                     }
                 }
@@ -243,7 +248,13 @@ final class SpeechEngine {
     }
     /// Key released: send what was said, giving the recognizer time to finalize.
     func finishNow() {
-        guard active, !ending else { return }
+        guard active else { return }
+        if ending {
+            // Fn can be released while the 25-second rotation is finalizing.
+            // Upgrade that rotation to submission instead of dropping the release.
+            submitAtEnd = true
+            return
+        }
         finishRequest(submit: true, grace: 1.6)
     }
     private func finishRequest(submit: Bool, grace: TimeInterval = 0.3) {
@@ -263,7 +274,7 @@ final class SpeechEngine {
         generation += 1
         sink.betweenUtterances(); task?.cancel(); task = nil; request = nil
         if submit || discardAtEnd { utterance.reset() }
-        let audio = submit ? recorder.take() : nil
+        let audio = submit ? recorder.takeForTranscription() : nil
         if discardAtEnd { recorder.reset() }
         discardAtEnd = false
         beginRequest()
@@ -273,16 +284,21 @@ final class SpeechEngine {
     /// is off, not installed or fails. Commands still arrive in the order they were spoken.
     private func deliver(_ apple: String, audio: Data?, sendWords: Bool) {
         let previous = delivery
+        let session = sessionGeneration
+        pendingDeliveries += 1
         let language = String((UserDefaults.standard.string(forKey: "speechLocale") ?? "en-US").prefix(2))
         delivery = Task { @MainActor [weak self] in
             await previous?.value
+            guard let self, session == self.sessionGeneration, !Task.isCancelled else { return }
             var final = apple
             if let audio, let text = await LocalWhisper.shared.transcribe(audio, language: language) {
                 var buffer = UtteranceBuffer(); buffer.sendWords = sendWords; buffer.update(text, at: 0)
                 if !buffer.command.isEmpty { final = buffer.command; DebugLog.write("HEARD by Apple: " + apple) }
             }
-            self?.onDiagnostic?("submit: \(final)")
-            self?.onFinished?(final)
+            guard session == self.sessionGeneration, !Task.isCancelled else { return }
+            self.pendingDeliveries -= 1
+            self.onDiagnostic?("submit: \(final)")
+            self.onFinished?(final)
         }
     }
     /// Keep the physical microphone open, but exclude our own spoken feedback.
@@ -295,6 +311,7 @@ final class SpeechEngine {
         if active && !value { beginRequest() }
     }
     func cancel() {
+        delivery?.cancel(); delivery = nil; pendingDeliveries = 0
         replayTask?.cancel(); replayTask = nil; replaying = false
         sessionGeneration += 1; generation += 1
         active = false; ending = false; suppressed = false; utterance.reset(); recorder.reset()
@@ -302,5 +319,11 @@ final class SpeechEngine {
         if hasTap { engine.inputNode.removeTap(onBus: 0); hasTap = false }
         task?.cancel(); task = nil; request = nil
         onLevel?(0)
+    }
+    private func interruptRecognition(_ message: String) {
+        let draft = utterance.command
+        cancel()
+        if !draft.isEmpty { onInterrupted?(draft, message) }
+        else { onError?(message) }
     }
 }

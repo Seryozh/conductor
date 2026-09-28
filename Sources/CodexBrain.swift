@@ -132,23 +132,37 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         let stdout = Pipe(); task.standardOutput = stdout; task.standardError = FileHandle.nullDevice
         var outcome = Outcome(), failure: String?
         let parseLock = NSLock()
-        func fail(_ text: String) { parseLock.lock(); if failure == nil { failure = text }; parseLock.unlock() }
+        let watchdog = BrainIdleWatchdog(timeout: timeout) {
+            parseLock.withLock { if failure == nil { failure = "Codex produced no activity for \(Int(timeout)) seconds. The request is unfinished." } }
+            if task.isRunning { task.terminate() }
+        }
+        defer { watchdog.stop() }
         func handle(_ line: Data) {
             guard let event = try? JSONSerialization.jsonObject(with: line) as? [String: Any] else { return }
+            watchdog.activity()
             let kind = event["type"] as? String ?? ""
             let item = event["item"] as? [String: Any] ?? [:]
             parseLock.lock(); defer { parseLock.unlock() }
             switch kind {
-            case "thread.started": outcome.thread = event["thread_id"] as? String
-            case "item.started" where item["type"] as? String == "command_execution":
-                DispatchQueue.main.async { [weak self] in self?.onActivity?("Working on your Mac…") }
+            case "turn.started": watchdog.begin("turn")
+            case "thread.started":
+                outcome.thread = event["thread_id"] as? String
+                // Retain the conversation even when this turn times out before an answer.
+                lock.withLock { if running === task { thread = outcome.thread } }
+            case "item.started":
+                if let id = item["id"] as? String { watchdog.begin(id) }
+                let label = item["type"] as? String == "reasoning" ? "Thinking…" : "Working on your Mac…"
+                DispatchQueue.main.async { [weak self] in self?.onActivity?(label) }
             case "item.completed":
+                if let id = item["id"] as? String { watchdog.end(id) }
                 if item["type"] as? String == "agent_message", let text = item["text"] as? String { outcome.answer = text }
                 if item["type"] as? String == "command_execution", let command = item["command"] as? String { outcome.tools.append(String(command.prefix(300))) }
             case "turn.completed":
+                watchdog.endAll()
                 let usage = event["usage"] as? [String: Any] ?? [:]
                 outcome.input += usage["input_tokens"] as? Int ?? 0; outcome.output += usage["output_tokens"] as? Int ?? 0
             case "turn.failed", "error":
+                watchdog.endAll()
                 if failure == nil { failure = ((event["error"] as? [String: Any])?["message"] as? String) ?? (event["message"] as? String) ?? "Codex returned an error." }
             default: break
             }
@@ -174,7 +188,6 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
                 if !buffer.isEmpty { handle(buffer) }
                 readerDone.signal()
             }
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { if task.isRunning { fail("Codex did not respond within \(Int(timeout)) seconds."); task.terminate() } }
         }
         lock.withLock { running = nil }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -185,7 +198,7 @@ final class CodexBrain: @unchecked Sendable, BrainPlanner {
         }
         let (result, problem) = parseLock.withLock { (outcome, failure) }
         if task.terminationReason == .uncaughtSignal, problem == nil { throw CancellationError() }
-        if let problem, result.answer.isEmpty {
+        if let problem {
             if !result.tools.isEmpty { DebugLog.write("CODEX FAILED after \(result.tools.count) commands: " + result.tools.map { String($0.prefix(120)) }.joined(separator: " | ")) }
             throw VoiceError.message("Codex: " + problem)
         }

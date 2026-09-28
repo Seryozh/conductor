@@ -1,6 +1,7 @@
 import Foundation
+import ApplicationServices
 
-/// Local transcript readers shared by desktop session actions. No network or model calls.
+/// Local transcript readers and receipts shared by desktop session actions. No network or model calls.
 enum SessionTranscripts {
     static func events(in file: URL, tailBytes: UInt64? = nil, _ visit: ([String: Any]) -> Void) {
         guard let handle = try? FileHandle(forReadingFrom: file) else { return }
@@ -55,6 +56,25 @@ enum SessionTranscripts {
             found = normalized(actual).contains(probe)
         }
         return found
+    }
+    /// The fallback receipt while saved history lags (a busy task queues new input): the
+    /// message shown in the conversation outside any editable field, so a draft never
+    /// counts. Pages nested in this one (a browser preview) are skipped. A message of
+    /// several paragraphs is matched by its first one, as the page may split them.
+    static func shownAsSent(_ text: String, in page: AXUIElement) -> Bool {
+        let whole = normalized(text)
+        let first = normalized(text.split(whereSeparator: \.isNewline).first.map(String.init) ?? "")
+        let expected = first.count >= 20 ? first : whole
+        guard !expected.isEmpty else { return false }
+        func search(_ element: AXUIElement, _ depth: Int) -> Bool {
+            guard depth < 60, (AX.value(element, kAXHiddenAttribute) as? Bool) != true else { return false }
+            let role = AX.string(element, kAXRoleAttribute)
+            if role == kAXTextAreaRole || role == kAXTextFieldRole || (depth > 0 && role == "AXWebArea") { return false }
+            if role == kAXStaticTextRole,
+               [AX.string(element, kAXValueAttribute), AX.label(element)].contains(where: { normalized($0).contains(expected) }) { return true }
+            return AX.children(element).contains { search($0, depth + 1) }
+        }
+        return search(page, 0)
     }
     static func claudeReply(in file: URL) -> String? {
         var turn: [String] = [], finished = "", done = true

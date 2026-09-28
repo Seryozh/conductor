@@ -53,7 +53,7 @@ enum ClaudeSessions {
     }
 
     /// "focused", an id (desktop or CLI, a prefix is enough) or words from the title.
-    /// Russian endings differ ("монетизации" / "Монетизация"), so words match by their stem.
+    /// Inflected word endings differ, so words match by their stem.
     static func find(_ query: String, in supplied: [Session]? = nil) -> Session? {
         let sessions = supplied ?? all()
         let q = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -126,6 +126,53 @@ enum ClaudeSessions {
     static func transcriptHas(_ session: Session, _ text: String, since: Date) -> Bool {
         guard let file = transcriptURL(session) else { return false }
         return SessionTranscripts.hasUserMessage(in: file, text: text, since: since, codex: false)
+    }
+
+    /// The session whose saved history got this new message. Split panes and several windows
+    /// make "the session on screen" ambiguous, so every transcript written since counts,
+    /// unless an expected session was named: then only its history does.
+    static func sessionWithMessage(_ text: String, since: Date, expected: Session? = nil) -> Session? {
+        if let expected { return transcriptHas(expected, text, since: since) ? expected : nil }
+        let sessions = all()
+        let folders = (try? FileManager.default.contentsOfDirectory(at: projectsDirectory, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders {
+            let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+            for file in files where file.pathExtension == "jsonl" && ((try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) >= since {
+                guard SessionTranscripts.hasUserMessage(in: file, text: text, since: since, codex: false) else { continue }
+                let cli = file.deletingPathExtension().lastPathComponent
+                return sessions.first { $0.cli == cli } ?? Session(id: "", cli: cli, title: "", focused: 0)
+            }
+        }
+        return nil
+    }
+
+    /// Saved history lags while a busy session queues new input. The exact message on the
+    /// session page with no draft of it left in any message box proves delivery to the app.
+    static func messageOnScreen(_ text: String, expected: Session? = nil) -> Bool {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
+        let root = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetAttributeValue(root, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        guard let window = AX.element(root, kAXFocusedWindowAttribute) ?? AX.element(root, kAXMainWindowAttribute) else { return false }
+        func page(_ element: AXUIElement, _ depth: Int) -> AXUIElement? {
+            if AX.string(element, kAXRoleAttribute) == "AXWebArea", let url = AX.value(element, kAXURLAttribute) as? URL,
+               url.absoluteString.contains("/epitaxy/local_") { return element }
+            guard depth < 14 else { return nil }
+            for child in AX.children(element) { if let found = page(child, depth + 1) { return found } }
+            return nil
+        }
+        guard let session = page(window, 0) else { return false }
+        if let expected, (AX.value(session, kAXURLAttribute) as? URL)?.absoluteString.contains(expected.id) != true { return false }
+        let probe = SessionTranscripts.normalized(text)
+        var drafted = false
+        func boxes(_ element: AXUIElement, _ depth: Int) {
+            guard !drafted, depth < 60 else { return }
+            if AX.string(element, kAXRoleAttribute) == kAXTextAreaRole {
+                drafted = SessionTranscripts.normalized(AX.string(element, kAXValueAttribute)).contains(probe); return
+            }
+            for child in AX.children(element) { boxes(child, depth + 1) }
+        }
+        boxes(session, 0)
+        return !probe.isEmpty && !drafted && SessionTranscripts.shownAsSent(text, in: session)
     }
 
     private static func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {

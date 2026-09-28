@@ -200,8 +200,8 @@ final class LocalWhisper: @unchecked Sendable {
     /// Strip known subtitle hallucinations and normalize transcript whitespace.
     static func clean(_ raw: String) -> String {
         var text = raw.replacingOccurrences(of: "\n", with: " ")
-        for junk in ["Субтитры сделал DimaTorzok", "Субтитры создавал DimaTorzok", "Субтитры делал DimaTorzok", "Редактор субтитров А.Семкин Корректор А.Егорова"] {
-            text = text.replacingOccurrences(of: junk, with: "")
+        for junk in VoiceLocalization.words("speech.subtitleHallucinations") {
+            text = text.replacingOccurrences(of: junk, with: "", options: .caseInsensitive)
         }
         while text.contains("  ") { text = text.replacingOccurrences(of: "  ", with: " ") }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -226,6 +226,7 @@ final class SpeechRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var samples = Data()
     private var speaking = false
+    private var clipped = false
     private var converter: AVAudioConverter?
     private var inputFormat: AVAudioFormat?
     private let output = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: true)!
@@ -250,12 +251,22 @@ final class SpeechRecorder: @unchecked Sendable {
         lock.lock()
         samples += bytes
         let limit = speaking ? 16_000 * 2 * 600 : 48_000
-        if samples.count > limit { samples.removeFirst(samples.count - limit) }
+        if samples.count > limit {
+            if speaking { clipped = true }
+            samples.removeFirst(samples.count - limit)
+        }
         lock.unlock()
     }
     /// Words were heard: keep everything from now until the command is taken.
     func markSpeaking() { lock.lock(); speaking = true; lock.unlock() }
     /// The command's audio; the recorder starts over.
-    func take() -> Data { lock.lock(); let taken = samples; samples = Data(); speaking = false; lock.unlock(); return taken }
-    func reset() { lock.lock(); samples = Data(); speaking = false; lock.unlock() }
+    func take() -> Data { lock.lock(); let taken = samples; samples = Data(); speaking = false; clipped = false; lock.unlock(); return taken }
+    /// A rolling audio buffer must never replace the full transcript with only its tail.
+    func takeForTranscription() -> Data? {
+        lock.lock(); defer { lock.unlock() }
+        let complete = clipped ? nil : samples
+        samples = Data(); speaking = false; clipped = false
+        return complete
+    }
+    func reset() { lock.lock(); samples = Data(); speaking = false; clipped = false; lock.unlock() }
 }
