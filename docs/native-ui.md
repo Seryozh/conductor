@@ -1,8 +1,6 @@
 # Native interface
 
-Updated 2026-09-27 by Codex.
-
-The command surface is a SwiftUI view inside the existing nonactivating AppKit panel. One animated conductor sits beside the current message and controls. Ready and recognition are 360 × 132 pt; ordinary capture, work and attention use 420 pt width. Simultaneous work and capture use 440 pt. Typed entry and shorter answers use 500 pt, while longer answers and details use 540 pt. Height follows the content up to 520 pt and the visible screen limits. Narrow windows yield illustration space to the controls or stack below 320 pt.
+The command surface is a SwiftUI view inside the existing nonactivating AppKit panel. One animated conductor sits beside the current message and controls. The panel is 380 pt wide (500 pt while typing) and at least 132 pt tall; its height follows the content up to 520 pt and the visible screen limits. Narrow windows yield illustration space to the controls or stack below 320 pt.
 
 Setup has one actionable heading, the missing connection/access explanation and Settings button. There is no second status footer. Work, microphone capture, queue and screenshot counts remain independent. A second live transcript and long transcript use the full width below the compact task header. Short answers put the answer itself beside the illustration, with close, model/details and controls. Longer answers use a compact request header, full-width scrolling text and a 54 pt controls footer. Task controls remain reachable, and typed input stays pinned below the content. Dragging retains the existing bottom-center anchor and upward expansion.
 
