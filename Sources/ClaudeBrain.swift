@@ -70,7 +70,7 @@ struct BrainChoice: Identifiable, Equatable {
 
     static let opus = BrainChoice(id: "opus", model: "claude-opus-5-5", name: "Claude Opus 5.5", short: "Claude Code subscription",
         spoken: ["opus", "claude"])
-    static let sonnet = BrainChoice(id: "sonnet", model: "claude-sonnet-5", name: "Claude Sonnet 5", short: "Claude Code subscription",
+    static let sonnet = BrainChoice(id: "sonnet", model: "claude-sonnet-5-5", name: "Claude Sonnet 5.5", short: "Claude Code subscription",
         spoken: ["sonnet"])
     static let astra = BrainChoice(id: "astra", model: "gpt-6-astra", name: "GPT-6 Astra", short: "Codex on your ChatGPT plan", codex: true,
         spoken: ["astra"])

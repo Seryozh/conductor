@@ -141,8 +141,8 @@ private enum Sample {
         func busy(_ phase: String, _ detail: String, command: String = Sample.russianCommand) -> AppModel {
             let m = model(); m.busy = true; m.phase = phase; m.detail = detail; m.transcript = command; return m
         }
-        try bar("thinking", "Thinking", "The selected brain is planning. The heard request is shown above the status.", busy("Thinking", "Claude Sonnet 5 is thinking…"), core: true)
-        try bar("thinking-long-request", "Thinking with a long request", "The request is clamped to two lines while working.", busy("Thinking", "Claude Sonnet 5 is thinking…", command: Sample.longCommand))
+        try bar("thinking", "Thinking", "The selected brain is planning. The heard request is shown above the status.", busy("Thinking", "Claude Sonnet 5.5 is thinking…"), core: true)
+        try bar("thinking-long-request", "Thinking with a long request", "The request is clamped to two lines while working.", busy("Thinking", "Claude Sonnet 5.5 is thinking…", command: Sample.longCommand))
         try bar("brain-tool-work", "Brain working on the Mac", "The brain runs its own tools (shell, AppleScript). The artwork still shows Thinking.", busy("Thinking", "Working on your Mac: Close every app except Claude"))
         try bar("acting-jev-step", "Acting: a Jev UI step", "Jev performs one visible UI action (click, type, press).", busy("Acting", "Click New Tab", command: "В Chrome открой мне Википедию, GitHub и Hacker News."), core: true)
         try bar("observing-no-brain", "Acting without a brain", "Brain turned off (Plan before acting off): Jev reads the screen directly.", busy("Observing", "Reading available actions…", command: Sample.shortCommand))
@@ -152,14 +152,14 @@ private enum Sample {
         let queue = busy("Acting", "Type “https://wikipedia.org”"); queue.shotsThisCommand = 3
         queue.stageForGallery(queued: ["Open Telegram", "Read me the latest reply from the coordinator"])
         try bar("busy-queue-and-screenshots", "Working with queued requests and screenshots", "Requests spoken or typed while busy wait in a queue (up to 8); the camera count shows screenshots sent to the brain.", queue)
-        let nextEmpty = busy("Thinking", "Claude Sonnet 5 is thinking…"); nextEmpty.holdingToTalk = true
+        let nextEmpty = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); nextEmpty.holdingToTalk = true
         try bar("busy-listening-next-empty", "Working and listening to the next request", "Fn held while a task runs: the next request will be queued.", nextEmpty)
-        let nextText = busy("Thinking", "Claude Sonnet 5 is thinking…"); nextText.holdingToTalk = true; nextText.liveTranscript = "Then open Telegram and read me the newest message"; nextText.level = 0.7
+        let nextText = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); nextText.holdingToTalk = true; nextText.liveTranscript = "Then open Telegram and read me the newest message"; nextText.level = 0.7
         try bar("busy-listening-next-text", "Working and listening, with words", "The next request's live transcript uses the scrolling area.", nextText, core: true)
-        let busyTyping = busy("Thinking", "Claude Sonnet 5 is thinking…"); busyTyping.typedCommand = "Also mute Slack"
+        let busyTyping = busy("Thinking", "Claude Sonnet 5.5 is thinking…"); busyTyping.typedCommand = "Also mute Slack"
         try bar("busy-typing-queue", "Typing a request while working", "The keyboard button opens the editor; while busy it adds to the queue.", busyTyping, typing: true)
 
-        func answer(_ text: String, command: String = Sample.shortCommand, label: String = "Claude Sonnet 5") -> AppModel {
+        func answer(_ text: String, command: String = Sample.shortCommand, label: String = "Claude Sonnet 5.5") -> AppModel {
             let m = model(); m.phase = "Done"; m.transcript = command; m.answerText = text; m.modelLabel = label
             m.usageLine = Sample.usageLine; m.dayLine = Sample.dayLine; m.contextUsed = 11_664; return m
         }
@@ -305,7 +305,7 @@ private enum Sample {
         try save(MenuMock(rows: status), size: NSSize(width: 430, height: menuHeight(status)),
                  group: "Menus (reconstructed)", name: "menu-bar-status-menu", title: "Menu bar icon menu (reconstruction)",
                  when: "Click the Conductor icon in the macOS menu bar. Real NSMenu; drawn here from Main.swift menuNeedsUpdate, not captured.", backdrop: true, core: false)
-        var more: [Row] = [Row(title: "Claude Sonnet 5", disabled: true), Row(separator: true)]
+        var more: [Row] = [Row(title: "Claude Sonnet 5.5", disabled: true), Row(separator: true)]
         for choice in BrainChoice.all { more.append(Row(title: (choice.id == "sonnet" ? "✓ " : "    ") + choice.name + "  ·  " + choice.short)) }
         more += [Row(separator: true), Row(title: "Type a request"), Row(title: "Start new conversation"), Row(title: "Agent dashboard"), Row(title: "Settings…")]
         try save(MenuMock(rows: more), size: NSSize(width: 430, height: menuHeight(more)),
@@ -353,9 +353,9 @@ private enum Sample {
         func busy(_ phase: String, _ detail: String) -> AppModel {
             let m = model(); m.busy = true; m.phase = phase; m.detail = detail; m.transcript = command; return m
         }
-        try step("thinking", "Thinking", busy("Thinking", "Claude Sonnet 5 is thinking…"))
+        try step("thinking", "Thinking", busy("Thinking", "Claude Sonnet 5.5 is thinking…"))
         try step("acting", "Acting", busy("Acting", "Click Calendar"))
-        let done = model(); done.phase = "Done"; done.transcript = command; done.answerText = Sample.shortAnswer; done.modelLabel = "Claude Sonnet 5"
+        let done = model(); done.phase = "Done"; done.transcript = command; done.answerText = Sample.shortAnswer; done.modelLabel = "Claude Sonnet 5.5"
         done.usageLine = Sample.usageLine; done.dayLine = Sample.dayLine; done.contextUsed = 11_664
         try step("answer", "Answer", done)
     }
