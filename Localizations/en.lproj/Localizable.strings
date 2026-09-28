@@ -44,8 +44,8 @@
 "Voice commands" = "Voice commands";
 "Say ‘cancel task’ or click Stop to interrupt a running task. Say ‘stop listening’ to turn off the microphone. Say ‘start over’ to clear the brain's conversation context." = "Say ‘cancel task’ or click Stop to interrupt a running task. Say ‘stop listening’ to turn off the microphone. Say ‘start over’ to clear the brain's conversation context.";
 "Jev action selector" = "Jev action selector";
-"Your TypeSafe API key is stored in macOS Keychain." = "Your TypeSafe API key is stored in macOS Keychain.";
-"Add a TypeSafe API key. Conductor stores it only in macOS Keychain." = "Add a TypeSafe API key. Conductor stores it only in macOS Keychain.";
+"Your Jev API key is saved in a file only your user can read." = "Your Jev API key is saved in a file only your user can read.";
+"Add a TypeSafe or OpenRouter API key. Conductor keeps it in a file only your user can read." = "Add a TypeSafe or OpenRouter API key. Conductor keeps it in a file only your user can read.";
 "Replace API key" = "Replace API key";
 "Checking…" = "Checking…";
 "Check connection" = "Check connection";
@@ -118,7 +118,7 @@
 "Let Conductor work on your Mac." = "Let Conductor work on your Mac.";
 "Try a small request." = "Try a small request.";
 "Use the Claude Code or ChatGPT login you already have. You can change the brain later." = "Use the Claude Code or ChatGPT login you already have. You can change the brain later.";
-"Your TypeSafe key stays in macOS Keychain. Check the connection when you are ready." = "Your TypeSafe key stays in macOS Keychain. Check the connection when you are ready.";
+"Your Jev API key is saved in a file only your user can read. Check the connection when you are ready." = "Your Jev API key is saved in a file only your user can read. Check the connection when you are ready.";
 "These controls open the real macOS permission prompts. You can finish this later in Preferences." = "These controls open the real macOS permission prompts. You can finish this later in Preferences.";
 "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try." = "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try.";
 "Finding a CLI does not verify its sign-in. Sign in with Claude Code or Codex before your first request." = "Finding a CLI does not verify its sign-in. Sign in with Claude Code or Codex before your first request.";

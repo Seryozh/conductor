@@ -66,8 +66,8 @@
 "Voice commands" = "Голосовые команды";
 "Say ‘cancel task’ or click Stop to interrupt a running task. Say ‘stop listening’ to turn off the microphone. Say ‘start over’ to clear the brain's conversation context." = "Скажите «отмени задачу» или нажмите «Стоп», чтобы прервать выполняемую задачу. Скажите «прекрати слушать», чтобы выключить микрофон. Скажите «начни сначала», чтобы очистить контекст разговора.";
 "Jev action selector" = "Выбор действий Jev";
-"Your TypeSafe API key is stored in macOS Keychain." = "Ваш ключ TypeSafe хранится в Связке ключей macOS.";
-"Add a TypeSafe API key. Conductor stores it only in macOS Keychain." = "Добавьте ключ TypeSafe API. Conductor хранит его только в Связке ключей macOS.";
+"Your Jev API key is saved in a file only your user can read." = "Ваш ключ Jev API хранится в файле, который может прочитать только ваш пользователь.";
+"Add a TypeSafe or OpenRouter API key. Conductor keeps it in a file only your user can read." = "Добавьте ключ TypeSafe или OpenRouter API. Conductor хранит его в файле, который может прочитать только ваш пользователь.";
 "Replace API key" = "Заменить ключ API";
 "Checking…" = "Проверка…";
 "Check connection" = "Проверить соединение";
@@ -142,7 +142,7 @@
 "Let Conductor work on your Mac." = "Разрешите Conductor работать на вашем Mac.";
 "Try a small request." = "Попробуйте простой запрос.";
 "Use the Claude Code or ChatGPT login you already have. You can change the brain later." = "Используйте свой аккаунт Claude Code или ChatGPT. Мозг можно сменить позже.";
-"Your TypeSafe key stays in macOS Keychain. Check the connection when you are ready." = "Ключ TypeSafe хранится в Связке ключей macOS. Проверьте подключение, когда будете готовы.";
+"Your Jev API key is saved in a file only your user can read. Check the connection when you are ready." = "Ключ Jev API хранится в файле, который может прочитать только ваш пользователь. Проверьте подключение, когда будете готовы.";
 "These controls open the real macOS permission prompts. You can finish this later in Preferences." = "Эти кнопки открывают разрешения macOS. Можно закончить позже в настройках.";
 "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try." = "Откройте окно практики, зажмите Fn и скажите «нажми Blue». Здесь можно попробовать кнопки и ввод текста.";
 "Finding a CLI does not verify its sign-in. Sign in with Claude Code or Codex before your first request." = "Наличие CLI не подтверждает вход в аккаунт. Войдите в Claude Code или Codex перед первым запросом.";

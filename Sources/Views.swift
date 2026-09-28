@@ -222,7 +222,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(LocalizedStringKey(["Choose the brain behind Conductor.", "Connect Jev's actions.", "Let Conductor work on your Mac.", "Try a small request."][guideStep]))
                             .font(.system(size: 22, weight: .semibold))
-                        Text(LocalizedStringKey(["Use the Claude Code or ChatGPT login you already have. You can change the brain later.", "Your Jev API key stays in macOS Keychain. Check the connection when you are ready.", "These controls open the real macOS permission prompts. You can finish this later in Preferences.", "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try."][guideStep]))
+                        Text(LocalizedStringKey(["Use the Claude Code or ChatGPT login you already have. You can change the brain later.", "Your Jev API key is saved in a file only your user can read. Check the connection when you are ready.", "These controls open the real macOS permission prompts. You can finish this later in Preferences.", "Open the local practice window, then hold Fn and say ‘click Blue’. Its buttons and text field are safe to try."][guideStep]))
                             .font(.system(size: 13)).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                     }
                     switch guideStep {
@@ -348,7 +348,7 @@ struct SettingsView: View {
 
     private var jevCard: some View {
         Card(title: "Jev actions", systemImage: "key.fill") {
-            caption(model.keyConfigured ? "Your Jev API key is stored in macOS Keychain." : "Add a TypeSafe or OpenRouter API key. Conductor stores it only in macOS Keychain.")
+            caption(model.keyConfigured ? "Your Jev API key is saved in a file only your user can read." : "Add a TypeSafe or OpenRouter API key. Conductor keeps it in a file only your user can read.")
             if model.keyConfigured {
                 DisclosureGroup("Replace API key") { keyEntry.padding(.top, 8) }.font(.system(size: 13))
             } else { keyEntry }

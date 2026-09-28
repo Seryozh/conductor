@@ -413,7 +413,7 @@ final class CommandBarPanel: NSPanel {
         if CommandLine.arguments.contains("--account-status") {
             Task { @MainActor in
                 do {
-                    guard let key = KeyStore.read() else { throw VoiceError.message("This app could not read its saved Keychain key.") }
+                    guard let key = KeyStore.read() else { throw VoiceError.message("This app could not read its saved Jev key.") }
                     let status = try await JevClient().accountStatus(key: key)
                     let data = try JSONSerialization.data(withJSONObject: status, options: [.prettyPrinted, .sortedKeys])
                     print(String(data: data, encoding: .utf8)!); exit(0)
